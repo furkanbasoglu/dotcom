@@ -111,10 +111,13 @@ const STRINGS = {
     nav_sparams: 'S-Parametre',
     nav_iq: 'I/Q',
     nav_waveform: 'Dalga Formu',
+    nav_bilgi: 'Bilgi',
     // IQ
     iq_upload: '01 · I/Q kaydı yükle',
     iq_upload_hint: 'spektrum analizör / SDR çıktıları — CSV veya text',
+    iq_drop_text: 'I/Q kayıtlarını buraya sürükle',
     iq_formats: 'desteklenen: 2 kolon (I, Q), 3 kolon (t, I, Q), boşluk/virgül/tab ayrılmış',
+    iq_formats_full: '.CSV · .TXT · .CFILE · .FC32 · .SC16 · .CI16 · .CS8 · .SIGMF-META + .SIGMF-DATA · BİRDEN FAZLA SEÇİLEBİLİR',
     iq_sample: 'örnek 16-QAM',
     iq_files: 'I/Q dosyaları',
     iq_samples: 'örnek',
@@ -134,7 +137,9 @@ const STRINGS = {
     // Waveform
     wf_upload: '01 · dalga formu yükle',
     wf_upload_hint: 'osiloskop / işaret kayıtları — tek veya çok kanal',
+    wf_drop_text: 'dalga formu dosyalarını buraya sürükle',
     wf_formats: 'desteklenen: CSV/text, tek kolon (örnek/satır), çok kolon (her kolon ayrı kanal), ilk kolon zaman ise otomatik algılanır',
+    wf_formats_full: '.CSV · .TXT · .TSV · .DAT · .WAV · BİRDEN FAZLA SEÇİLEBİLİR',
     wf_sample: 'örnek 2-ton + AM',
     wf_files: 'dalga formu dosyaları',
     wf_channels: 'kanal',
@@ -166,6 +171,10 @@ const STRINGS = {
     wf_title_a: 'Dalga',
     wf_title_b: 'formu',
     wf_intro: 'Osiloskop veya işaret kaydı bir dalga formunu yükle. Çok kanallı zaman alanı ve seçili kanal için FFT spektrumu. İlk kolon zaman ekseniyse otomatik algılanır.',
+    bilgi_subtitle: '04 · terim sözlüğü · başvuru',
+    bilgi_title_a: 'Bilgi',
+    bilgi_title_b: 'sekmesi',
+    bilgi_intro: 'Sitede kullanılan tüm terimlerin (S-parametreleri, I/Q, FFT, Smith chart, pencere fonksiyonları…) detaylı açıklamaları, şekiller ve formüller.',
     sparams_drop: 'Touchstone dosyalarını buraya sürükle',
     sparams_ext_hint: '.s1p · .s2p · .s3p · .s4p · birden fazla seçilebilir',
     sparams_no_files: 'henüz S-parametre dosyası yüklenmedi',
@@ -310,10 +319,13 @@ const STRINGS = {
     nav_sparams: 'S-Parameters',
     nav_iq: 'I/Q',
     nav_waveform: 'Waveform',
+    nav_bilgi: 'Info',
     // IQ
     iq_upload: '01 · upload I/Q record',
     iq_upload_hint: 'spectrum analyzer / SDR captures — CSV or text',
+    iq_drop_text: 'drop I/Q records here',
     iq_formats: 'supported: 2 columns (I, Q), 3 columns (t, I, Q), space/comma/tab separated',
+    iq_formats_full: '.CSV · .TXT · .CFILE · .FC32 · .SC16 · .CI16 · .CS8 · .SIGMF-META + .SIGMF-DATA · MULTIPLE ALLOWED',
     iq_sample: 'sample 16-QAM',
     iq_files: 'I/Q files',
     iq_samples: 'samples',
@@ -333,7 +345,9 @@ const STRINGS = {
     // Waveform
     wf_upload: '01 · upload waveform',
     wf_upload_hint: 'oscilloscope / signal captures — single or multi-channel',
+    wf_drop_text: 'drop waveform files here',
     wf_formats: 'supported: CSV/text, single column (sample/row), multi-column (each column a channel), first column auto-detected as time',
+    wf_formats_full: '.CSV · .TXT · .TSV · .DAT · .WAV · MULTIPLE ALLOWED',
     wf_sample: 'sample 2-tone + AM',
     wf_files: 'waveform files',
     wf_channels: 'channel',
@@ -365,6 +379,10 @@ const STRINGS = {
     wf_title_a: 'Wave',
     wf_title_b: 'form',
     wf_intro: 'Load a waveform from an oscilloscope or signal capture. Multi-channel time domain and FFT spectrum for the chosen channel. First column auto-detected as time axis if monotonic.',
+    bilgi_subtitle: '04 · glossary · reference',
+    bilgi_title_a: 'Info',
+    bilgi_title_b: 'tab',
+    bilgi_intro: 'Detailed explanations of every term used in the app (S-parameters, I/Q, FFT, Smith chart, window functions…) with figures and formulas.',
     sparams_drop: 'drop Touchstone files here',
     sparams_ext_hint: '.s1p · .s2p · .s3p · .s4p · multiple allowed',
     sparams_no_files: 'no S-parameter files loaded yet',
@@ -3677,8 +3695,8 @@ function SParamChartCard({
 
 // ─── Hash routing ──────────────────────────────────────────────
 // file:// üzerinde de çalışır. Hash'te '#/csv' veya '#/sparams' tutulur.
-const ROUTES = ['csv', 'sparams', 'iq', 'waveform'];
-const ENABLED_ROUTES = new Set(['csv', 'sparams', 'iq', 'waveform']); // tüm rotalar
+const ROUTES = ['csv', 'sparams', 'iq', 'waveform', 'bilgi'];
+const ENABLED_ROUTES = new Set(['csv', 'sparams', 'iq', 'waveform', 'bilgi']); // tüm rotalar
 function readHashRoute() {
   const h = (typeof window !== 'undefined' ? window.location.hash : '').replace(/^#\/?/, '');
   if (ROUTES.includes(h)) return h;
@@ -4666,26 +4684,27 @@ function IQPage({
     onDrop: onDrop,
     className: `border-2 border-dashed transition-all ${dragging ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--border-hard)] bg-[var(--bg-panel)]'}`
   }, /*#__PURE__*/React.createElement("div", {
-    className: "px-6 py-8 md:px-10 md:py-10 text-center"
+    className: "px-8 py-12 text-center"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "text-[10px] uppercase tracking-[0.3em] text-[var(--ink-soft)] mb-3",
+    className: "text-[10px] uppercase tracking-[0.3em] text-[var(--ink-muted)] mb-4",
     style: {
       fontFamily: FONT_MONO
     }
   }, t('iq_upload')), /*#__PURE__*/React.createElement("p", {
-    className: "text-sm italic text-[var(--ink)] mb-4",
+    className: "mb-7 italic leading-tight text-[var(--ink)]",
     style: {
-      fontFamily: FONT_SERIF
+      fontFamily: FONT_SERIF,
+      fontSize: 'clamp(1.5rem, 3.5vw, 2rem)'
     }
-  }, t('iq_upload_hint')), /*#__PURE__*/React.createElement("div", {
+  }, t('iq_drop_text')), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-center gap-3 flex-wrap"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => fileInputRef.current?.click(),
-    className: "text-[10px] uppercase tracking-[0.2em] px-3 py-2 border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--bg)] transition-colors",
+    className: "px-6 py-3 bg-[var(--ink)] text-[var(--bg)] uppercase tracking-[0.2em] text-xs hover:bg-[var(--accent)] transition-colors",
     style: {
       fontFamily: FONT_MONO
     }
-  }, t('select_file')), /*#__PURE__*/React.createElement("input", {
+  }, t('pick_file')), /*#__PURE__*/React.createElement("input", {
     ref: fileInputRef,
     type: "file",
     multiple: true,
@@ -4696,11 +4715,11 @@ function IQPage({
       e.target.value = '';
     }
   })), /*#__PURE__*/React.createElement("p", {
-    className: "text-[10px] text-[var(--ink-muted)] mt-4",
+    className: "text-[10px] uppercase tracking-[0.2em] text-[var(--ink-muted)] mt-6",
     style: {
       fontFamily: FONT_MONO
     }
-  }, t('iq_formats')))), /*#__PURE__*/React.createElement(SampleGallery, {
+  }, t('iq_formats_full')))), /*#__PURE__*/React.createElement(SampleGallery, {
     samples: samples,
     t: t
   }), iqFiles.length > 0 && /*#__PURE__*/React.createElement("section", {
@@ -5126,26 +5145,27 @@ function WaveformPage({
     onDrop: onDrop,
     className: `border-2 border-dashed transition-all ${dragging ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--border-hard)] bg-[var(--bg-panel)]'}`
   }, /*#__PURE__*/React.createElement("div", {
-    className: "px-6 py-8 md:px-10 md:py-10 text-center"
+    className: "px-8 py-12 text-center"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "text-[10px] uppercase tracking-[0.3em] text-[var(--ink-soft)] mb-3",
+    className: "text-[10px] uppercase tracking-[0.3em] text-[var(--ink-muted)] mb-4",
     style: {
       fontFamily: FONT_MONO
     }
   }, t('wf_upload')), /*#__PURE__*/React.createElement("p", {
-    className: "text-sm italic text-[var(--ink)] mb-4",
+    className: "mb-7 italic leading-tight text-[var(--ink)]",
     style: {
-      fontFamily: FONT_SERIF
+      fontFamily: FONT_SERIF,
+      fontSize: 'clamp(1.5rem, 3.5vw, 2rem)'
     }
-  }, t('wf_upload_hint')), /*#__PURE__*/React.createElement("div", {
+  }, t('wf_drop_text')), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-center gap-3 flex-wrap"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => fileInputRef.current?.click(),
-    className: "text-[10px] uppercase tracking-[0.2em] px-3 py-2 border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--bg)] transition-colors",
+    className: "px-6 py-3 bg-[var(--ink)] text-[var(--bg)] uppercase tracking-[0.2em] text-xs hover:bg-[var(--accent)] transition-colors",
     style: {
       fontFamily: FONT_MONO
     }
-  }, t('select_file')), /*#__PURE__*/React.createElement("input", {
+  }, t('pick_file')), /*#__PURE__*/React.createElement("input", {
     ref: fileInputRef,
     type: "file",
     multiple: true,
@@ -5156,11 +5176,11 @@ function WaveformPage({
       e.target.value = '';
     }
   })), /*#__PURE__*/React.createElement("p", {
-    className: "text-[10px] text-[var(--ink-muted)] mt-4",
+    className: "text-[10px] uppercase tracking-[0.2em] text-[var(--ink-muted)] mt-6",
     style: {
       fontFamily: FONT_MONO
     }
-  }, t('wf_formats')))), /*#__PURE__*/React.createElement(SampleGallery, {
+  }, t('wf_formats_full')))), /*#__PURE__*/React.createElement(SampleGallery, {
     samples: samples,
     t: t
   }), wfFiles.length > 0 && /*#__PURE__*/React.createElement("section", {
@@ -5295,6 +5315,665 @@ function WaveformPage({
 }
 
 // ─── SampleGallery: indir + tek tıkla yükle ────────────────────
+// ─── BilgiPage — terim sözlüğü, açıklayıcı şekiller ───────────
+function BilgiPage({
+  t,
+  lang
+}) {
+  // Yardımcı bileşenler
+  const Section = ({
+    id,
+    title,
+    children
+  }) => /*#__PURE__*/React.createElement("section", {
+    id: id,
+    className: "border border-[var(--border)] bg-[var(--bg-panel)] p-6 md:p-8"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "text-[var(--ink)] mb-5 pb-3 border-b border-[var(--border)]",
+    style: {
+      fontFamily: FONT_SERIF,
+      fontSize: 'clamp(1.5rem, 3vw, 1.875rem)',
+      fontWeight: 500
+    }
+  }, title), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-5 text-[var(--ink-soft)] leading-relaxed",
+    style: {
+      fontFamily: FONT_SERIF,
+      fontSize: '15px'
+    }
+  }, children));
+  const Term = ({
+    name,
+    formula,
+    children
+  }) => /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-baseline gap-3 flex-wrap mb-1.5"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[var(--ink)]",
+    style: {
+      fontFamily: FONT_MONO,
+      fontSize: '14px',
+      fontWeight: 600,
+      letterSpacing: '0.02em'
+    }
+  }, name), formula && /*#__PURE__*/React.createElement("span", {
+    className: "text-[var(--accent)]",
+    style: {
+      fontFamily: FONT_MONO,
+      fontSize: '13px'
+    }
+  }, formula)), /*#__PURE__*/React.createElement("div", {
+    className: "text-[var(--ink-soft)]",
+    style: {
+      fontSize: '14.5px'
+    }
+  }, children));
+
+  // SVG: 2-port S-parameter blok diyagramı
+  const SParamDiagram = () => /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 480 200",
+    style: {
+      width: '100%',
+      maxWidth: 480,
+      height: 'auto'
+    }
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("marker", {
+    id: "arrowAcc",
+    viewBox: "0 0 10 10",
+    refX: "9",
+    refY: "5",
+    markerWidth: "6",
+    markerHeight: "6",
+    orient: "auto"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M0,0 L10,5 L0,10 Z",
+    fill: "var(--accent)"
+  })), /*#__PURE__*/React.createElement("marker", {
+    id: "arrowInk",
+    viewBox: "0 0 10 10",
+    refX: "9",
+    refY: "5",
+    markerWidth: "6",
+    markerHeight: "6",
+    orient: "auto"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M0,0 L10,5 L0,10 Z",
+    fill: "var(--ink-soft)"
+  }))), /*#__PURE__*/React.createElement("rect", {
+    x: "180",
+    y: "60",
+    width: "120",
+    height: "80",
+    fill: "none",
+    stroke: "var(--ink)",
+    strokeWidth: "1.5"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: "240",
+    y: "105",
+    textAnchor: "middle",
+    fill: "var(--ink)",
+    fontSize: "13",
+    fontFamily: "serif",
+    fontStyle: "italic"
+  }, "DUT"), /*#__PURE__*/React.createElement("line", {
+    x1: "80",
+    y1: "100",
+    x2: "180",
+    y2: "100",
+    stroke: "var(--ink-soft)",
+    strokeWidth: "1"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: "100",
+    y: "90",
+    fill: "var(--ink)",
+    fontSize: "12",
+    fontFamily: "monospace"
+  }, "Port 1"), /*#__PURE__*/React.createElement("line", {
+    x1: "300",
+    y1: "100",
+    x2: "400",
+    y2: "100",
+    stroke: "var(--ink-soft)",
+    strokeWidth: "1"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: "365",
+    y: "90",
+    fill: "var(--ink)",
+    fontSize: "12",
+    fontFamily: "monospace"
+  }, "Port 2"), /*#__PURE__*/React.createElement("line", {
+    x1: "90",
+    y1: "85",
+    x2: "175",
+    y2: "85",
+    stroke: "var(--accent)",
+    strokeWidth: "1.4",
+    markerEnd: "url(#arrowAcc)"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: "130",
+    y: "78",
+    fill: "var(--accent)",
+    fontSize: "12",
+    fontFamily: "monospace"
+  }, "a\u2081"), /*#__PURE__*/React.createElement("line", {
+    x1: "175",
+    y1: "115",
+    x2: "90",
+    y2: "115",
+    stroke: "var(--ink-soft)",
+    strokeWidth: "1.4",
+    markerEnd: "url(#arrowInk)"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: "130",
+    y: "130",
+    fill: "var(--ink-soft)",
+    fontSize: "12",
+    fontFamily: "monospace"
+  }, "b\u2081"), /*#__PURE__*/React.createElement("line", {
+    x1: "395",
+    y1: "115",
+    x2: "305",
+    y2: "115",
+    stroke: "var(--accent)",
+    strokeWidth: "1.4",
+    markerEnd: "url(#arrowAcc)"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: "345",
+    y: "130",
+    fill: "var(--accent)",
+    fontSize: "12",
+    fontFamily: "monospace"
+  }, "a\u2082"), /*#__PURE__*/React.createElement("line", {
+    x1: "305",
+    y1: "85",
+    x2: "395",
+    y2: "85",
+    stroke: "var(--ink-soft)",
+    strokeWidth: "1.4",
+    markerEnd: "url(#arrowInk)"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: "345",
+    y: "78",
+    fill: "var(--ink-soft)",
+    fontSize: "12",
+    fontFamily: "monospace"
+  }, "b\u2082"), /*#__PURE__*/React.createElement("text", {
+    x: "240",
+    y: "175",
+    textAnchor: "middle",
+    fill: "var(--ink-muted)",
+    fontSize: "11",
+    fontFamily: "monospace"
+  }, "b = S\xB7a \xB7 b\u2081 = S\u2081\u2081a\u2081 + S\u2081\u2082a\u2082 \xB7 b\u2082 = S\u2082\u2081a\u2081 + S\u2082\u2082a\u2082"));
+
+  // SVG: IQ kompleks düzlem
+  const IQDiagram = () => /*#__PURE__*/React.createElement("svg", {
+    viewBox: "-180 -180 360 360",
+    style: {
+      width: '100%',
+      maxWidth: 320,
+      height: 'auto'
+    }
+  }, /*#__PURE__*/React.createElement("line", {
+    x1: "-160",
+    y1: "0",
+    x2: "160",
+    y2: "0",
+    stroke: "var(--ink-muted)",
+    strokeWidth: "0.8"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "0",
+    y1: "-160",
+    x2: "0",
+    y2: "160",
+    stroke: "var(--ink-muted)",
+    strokeWidth: "0.8"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: "155",
+    y: "-8",
+    fill: "var(--ink-soft)",
+    fontSize: "11",
+    fontFamily: "monospace"
+  }, "I"), /*#__PURE__*/React.createElement("text", {
+    x: "8",
+    y: "-155",
+    fill: "var(--ink-soft)",
+    fontSize: "11",
+    fontFamily: "monospace"
+  }, "Q"), [-90, -30, 30, 90].map(x => [-90, -30, 30, 90].map(y => /*#__PURE__*/React.createElement("circle", {
+    key: `${x},${y}`,
+    cx: x,
+    cy: -y,
+    r: "4",
+    fill: "var(--accent)",
+    opacity: "0.8"
+  }))), /*#__PURE__*/React.createElement("text", {
+    x: "-170",
+    y: "170",
+    fill: "var(--ink-muted)",
+    fontSize: "10",
+    fontFamily: "monospace"
+  }, "16-QAM konstelasyonu"), /*#__PURE__*/React.createElement("line", {
+    x1: "0",
+    y1: "0",
+    x2: "60",
+    y2: "-100",
+    stroke: "var(--accent)",
+    strokeWidth: "1.5"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: "35",
+    y: "-55",
+    fill: "var(--accent)",
+    fontSize: "10",
+    fontFamily: "monospace"
+  }, "|I+jQ|"), /*#__PURE__*/React.createElement("path", {
+    d: "M 25 0 A 25 25 0 0 0 14 -20",
+    fill: "none",
+    stroke: "var(--accent)",
+    strokeWidth: "1"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: "30",
+    y: "-12",
+    fill: "var(--accent)",
+    fontSize: "9",
+    fontFamily: "monospace"
+  }, "\u03C6"));
+
+  // SVG: Smith chart simgesi
+  const SmithDiagram = () => /*#__PURE__*/React.createElement("svg", {
+    viewBox: "-110 -110 220 220",
+    style: {
+      width: '100%',
+      maxWidth: 240,
+      height: 'auto'
+    }
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "0",
+    cy: "0",
+    r: "100",
+    fill: "none",
+    stroke: "var(--ink-soft)",
+    strokeWidth: "1.2"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "33",
+    cy: "0",
+    r: "66",
+    fill: "none",
+    stroke: "var(--ink-muted)",
+    strokeWidth: "0.6"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "50",
+    cy: "0",
+    r: "50",
+    fill: "none",
+    stroke: "var(--ink-muted)",
+    strokeWidth: "0.6"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "66",
+    cy: "0",
+    r: "33",
+    fill: "none",
+    stroke: "var(--ink-muted)",
+    strokeWidth: "0.6"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "100",
+    cy: "-100",
+    r: "100",
+    fill: "none",
+    stroke: "var(--ink-muted)",
+    strokeWidth: "0.6",
+    clipPath: "inset(0 0 50% 50%)"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M 0 -100 A 100 100 0 0 1 100 0",
+    fill: "none",
+    stroke: "var(--ink-muted)",
+    strokeWidth: "0.6"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M 0 100 A 100 100 0 0 0 100 0",
+    fill: "none",
+    stroke: "var(--ink-muted)",
+    strokeWidth: "0.6"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "-100",
+    y1: "0",
+    x2: "100",
+    y2: "0",
+    stroke: "var(--ink-soft)",
+    strokeWidth: "0.8"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "40",
+    cy: "-30",
+    r: "3",
+    fill: "var(--accent)"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: "-95",
+    y: "-95",
+    fill: "var(--ink-muted)",
+    fontSize: "9",
+    fontFamily: "monospace"
+  }, "|\u0393|\u22641"), /*#__PURE__*/React.createElement("text", {
+    x: "-95",
+    y: "105",
+    fill: "var(--ink-muted)",
+    fontSize: "9",
+    fontFamily: "monospace"
+  }, "\u0393 = (Z\u2212Z\u2080)/(Z+Z\u2080)"));
+
+  // SVG: pencere fonksiyonları
+  const WindowDiagram = () => /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 320 140",
+    style: {
+      width: '100%',
+      maxWidth: 360,
+      height: 'auto'
+    }
+  }, /*#__PURE__*/React.createElement("line", {
+    x1: "20",
+    y1: "120",
+    x2: "310",
+    y2: "120",
+    stroke: "var(--ink-muted)",
+    strokeWidth: "0.8"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "20",
+    y1: "20",
+    x2: "20",
+    y2: "120",
+    stroke: "var(--ink-muted)",
+    strokeWidth: "0.8"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: "14",
+    y: "25",
+    textAnchor: "end",
+    fill: "var(--ink-muted)",
+    fontSize: "9",
+    fontFamily: "monospace"
+  }, "1"), /*#__PURE__*/React.createElement("text", {
+    x: "14",
+    y: "124",
+    textAnchor: "end",
+    fill: "var(--ink-muted)",
+    fontSize: "9",
+    fontFamily: "monospace"
+  }, "0"), /*#__PURE__*/React.createElement("text", {
+    x: "160",
+    y: "138",
+    textAnchor: "middle",
+    fill: "var(--ink-muted)",
+    fontSize: "10",
+    fontFamily: "monospace"
+  }, "n / N"), /*#__PURE__*/React.createElement("path", {
+    d: "M 20 20 L 300 20 L 300 120 L 20 120 Z",
+    fill: "none",
+    stroke: "var(--ink-soft)",
+    strokeWidth: "1",
+    strokeDasharray: "3,3"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: (() => {
+      const pts = [];
+      for (let i = 0; i <= 100; i++) {
+        const x = 20 + 280 * i / 100;
+        const w = 0.5 * (1 - Math.cos(2 * Math.PI * i / 100));
+        const y = 120 - w * 100;
+        pts.push(`${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`);
+      }
+      return pts.join(' ');
+    })(),
+    fill: "none",
+    stroke: "var(--accent)",
+    strokeWidth: "1.5"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: (() => {
+      const pts = [];
+      for (let i = 0; i <= 100; i++) {
+        const x = 20 + 280 * i / 100;
+        const t2 = 2 * Math.PI * i / 100;
+        const w = 0.42 - 0.5 * Math.cos(t2) + 0.08 * Math.cos(2 * t2);
+        const y = 120 - Math.max(0, w) * 100;
+        pts.push(`${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`);
+      }
+      return pts.join(' ');
+    })(),
+    fill: "none",
+    stroke: "#7b6cd9",
+    strokeWidth: "1.2"
+  }), /*#__PURE__*/React.createElement("g", {
+    style: {
+      fontFamily: 'monospace',
+      fontSize: '10px'
+    }
+  }, /*#__PURE__*/React.createElement("text", {
+    x: "240",
+    y: "40",
+    fill: "var(--ink-soft)"
+  }, "rect"), /*#__PURE__*/React.createElement("text", {
+    x: "240",
+    y: "55",
+    fill: "var(--accent)"
+  }, "hann"), /*#__PURE__*/React.createElement("text", {
+    x: "240",
+    y: "70",
+    fill: "#7b6cd9"
+  }, "blackman")));
+  const TR = lang === 'tr';
+  return /*#__PURE__*/React.createElement("div", {
+    className: "space-y-8",
+    style: {
+      fontFamily: FONT_SERIF
+    }
+  }, /*#__PURE__*/React.createElement("nav", {
+    className: "border border-[var(--border)] bg-[var(--bg-panel)] p-5 md:p-6"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] uppercase tracking-[0.25em] text-[var(--ink-muted)] mb-3",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, TR ? 'İçindekiler' : 'Table of Contents'), /*#__PURE__*/React.createElement("ol", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1.5 text-sm",
+    style: {
+      fontFamily: FONT_SERIF
+    }
+  }, [['rf-temel', TR ? '1. RF Temelleri: Z₀, Γ, dalga' : '1. RF basics: Z₀, Γ, waves'], ['s-param', TR ? '2. S-Parametreleri (S₁₁, S₂₁, S₁₂, S₂₂)' : '2. S-parameters (S₁₁, S₂₁, S₁₂, S₂₂)'], ['format', TR ? '3. Touchstone formatı (.s1p, .s2p, MA/DB/RI)' : '3. Touchstone format (.s1p, .s2p, MA/DB/RI)'], ['gorunum', TR ? '4. Görünümler: Genlik, Faz, VSWR, RL, Grup Gecikme' : '4. Views: magnitude, phase, VSWR, RL, group delay'], ['smith', TR ? '5. Smith Chart, empedans (Z), admitans (Y)' : '5. Smith chart, impedance (Z), admittance (Y)'], ['iq', TR ? '6. I/Q gösterimi, taşıyıcı, örnekleme hızı' : '6. I/Q representation, carrier, sample rate'], ['iq-views', TR ? '7. Konstelasyon, zarf, faz, |I+jQ|' : '7. Constellation, envelope, phase, |I+jQ|'], ['iq-format', TR ? '8. Binary IQ formatları (cfile, sc16, SigMF)' : '8. Binary IQ formats (cfile, sc16, SigMF)'], ['wf', TR ? '9. Dalga formu, sample rate türetme, kanallar' : '9. Waveform, sample rate derivation, channels'], ['fft', TR ? '10. FFT, spektrum, frekans çözünürlüğü (Δf=fs/N)' : '10. FFT, spectrum, frequency resolution (Δf=fs/N)'], ['window', TR ? '11. Pencere fonksiyonları (rect, hann, hamming, blackman)' : '11. Window functions (rect, hann, hamming, blackman)'], ['marker', TR ? '12. İmleç (marker), aktif kanal, dB normalleştirme' : '12. Marker, active channel, dB normalization']].map(([id, label]) => /*#__PURE__*/React.createElement("li", {
+    key: id
+  }, /*#__PURE__*/React.createElement("a", {
+    href: `#${id}`,
+    className: "text-[var(--ink-soft)] hover:text-[var(--accent)] transition-colors"
+  }, label))))), /*#__PURE__*/React.createElement(Section, {
+    id: "rf-temel",
+    title: TR ? '1. RF Temelleri' : '1. RF basics'
+  }, /*#__PURE__*/React.createElement("p", null, TR ? 'Bir RF/mikrodalga sisteminde sinyal, iletim hattı boyunca ileri ve geri yönde dalgalar olarak yayılır. Her port için iki temel büyüklük tanımlanır: porta giren dalga a ve porttan çıkan (yansıyan) dalga b. Tüm S-parametreleri bu dalga oranlarına dayanır.' : 'In an RF/microwave system, signals propagate as forward and backward waves along the transmission line. For each port we define two basic quantities: a (incident wave) and b (reflected wave). All S-parameters are ratios of these waves.'), /*#__PURE__*/React.createElement(Term, {
+    name: "Z\u2080",
+    formula: "referans empedans, genelde 50 \u03A9"
+  }, TR ? 'S-parametrelerinin tanımlandığı sabit. Cihaz Z₀ ile sonlandırıldığında yansıma olmaz. Çoğu lab cihazı (VNA, spektrum analizör) 50 Ω; bazı video/CATV sistemleri 75 Ω.' : 'The reference impedance against which S-parameters are defined. With a Z₀ termination no reflection occurs. Most lab instruments are 50 Ω; some video/CATV systems are 75 Ω.'), /*#__PURE__*/React.createElement(Term, {
+    name: "\u0393 (Gamma)",
+    formula: "\u0393 = b/a = (Z \u2212 Z\u2080)/(Z + Z\u2080)"
+  }, TR ? 'Yansıma katsayısı. Kompleks bir sayı (|Γ| ≤ 1 pasif sistemlerde). |Γ|=0 mükemmel eşleşme, |Γ|=1 tam yansıma (açık devre veya kısa devre). Smith chart bu kompleks sayının görsel haritasıdır.' : 'Reflection coefficient — a complex number with |Γ| ≤ 1 in passive systems. |Γ|=0 is a perfect match, |Γ|=1 a total reflection (open or short). The Smith chart visualizes this complex value.'), /*#__PURE__*/React.createElement(Term, {
+    name: "dB (desibel)",
+    formula: "20\xB7log\u2081\u2080(|x|) genlik i\xE7in, 10\xB7log\u2081\u2080(P) g\xFC\xE7 i\xE7in"
+  }, TR ? 'Logaritmik birim. 20 dB kayıp = genlik ×0.1; 3 dB ≈ güç yarıya iner. S-parametreleri sıklıkla dB olarak çizilir çünkü filtreler birkaç onlarca dB dinamik aralığa yayılır.' : 'Logarithmic unit. 20 dB loss = ×0.1 amplitude; 3 dB ≈ half power. S-parameters are usually plotted in dB because filters span tens of dB dynamic range.')), /*#__PURE__*/React.createElement(Section, {
+    id: "s-param",
+    title: TR ? '2. S-Parametreleri' : '2. S-parameters'
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-center my-3"
+  }, /*#__PURE__*/React.createElement(SParamDiagram, null)), /*#__PURE__*/React.createElement("p", null, TR ? 'N-portlu bir cihaz için S-matrisi her port çiftine ait dalga oranlarını tanımlar. 2-port için 4 parametre vardır.' : 'For an N-port device, the S-matrix defines wave ratios for every port pair. A 2-port has 4 parameters.'), /*#__PURE__*/React.createElement(Term, {
+    name: "S\u2081\u2081",
+    formula: "b\u2081/a\u2081 (a\u2082=0)"
+  }, TR ? 'Giriş yansıma katsayısı: Port 1\'e bir dalga gönderildiğinde geri yansıyan miktar. Antenler için "ne kadar iyi eşleştiği"nin ölçütü. |S₁₁| → 0 iyidir (radyasyona dönüşür).' : 'Input reflection: how much of the wave injected at port 1 bounces back. For antennas, lower |S₁₁| means better match (more radiation, less reflection).'), /*#__PURE__*/React.createElement(Term, {
+    name: "S\u2082\u2081",
+    formula: "b\u2082/a\u2081 (a\u2082=0)"
+  }, TR ? 'İleri iletim katsayısı: Port 1\'den giren sinyalin Port 2\'ye ulaşan kısmı. Filtreler için "geçiş bandı"; LNA/amplifier için "kazanç" (S₂₁ > 0 dB). Pasif filtrelerde S₂₁ ≤ 0 dB.' : 'Forward transmission: portion of the input at port 1 that reaches port 2. For filters this is the passband; for an LNA/amplifier it is the gain (S₂₁ > 0 dB). Passive filters have S₂₁ ≤ 0 dB.'), /*#__PURE__*/React.createElement(Term, {
+    name: "S\u2081\u2082",
+    formula: "b\u2081/a\u2082 (a\u2081=0)"
+  }, TR ? 'Ters iletim (izolasyon). Bir LNA için S₁₂ çok düşük olmalı — geri yönde kazanç istenmez (osilasyon riski). Pasif resiprok bir cihazda S₁₂ = S₂₁.' : 'Reverse transmission (isolation). For an LNA, S₁₂ should be very small to avoid reverse gain (oscillation risk). A passive reciprocal device has S₁₂ = S₂₁.'), /*#__PURE__*/React.createElement(Term, {
+    name: "S\u2082\u2082",
+    formula: "b\u2082/a\u2082 (a\u2081=0)"
+  }, TR ? 'Çıkış yansıma katsayısı: Port 2\'ye uygulanan sinyalin yansıması. Yük tarafında ne kadar iyi eşleştirildiğini gösterir.' : 'Output reflection: reflection seen looking into port 2. Indicates how well the output is matched to its load.')), /*#__PURE__*/React.createElement(Section, {
+    id: "format",
+    title: TR ? '3. Touchstone Dosya Formatı' : '3. Touchstone file format'
+  }, /*#__PURE__*/React.createElement("p", null, TR ? 'Tüm VNA üreticileri (R&S, Keysight, Anritsu, vb.) S-parametrelerini düz metin .sNp dosyalarında saklar. N port sayısıdır.' : 'All VNA vendors (R&S, Keysight, Anritsu, etc.) store S-parameters in plain-text .sNp files where N is the number of ports.'), /*#__PURE__*/React.createElement(Term, {
+    name: ".s1p / .s2p / .s3p / .s4p ..."
+  }, TR ? 'N = port sayısı. .s2p en yaygın (filtre, amplifikatör, kablo). Bilgi başlığı "!" ile, opsiyon satırı "#" ile başlar.' : 'N = number of ports. .s2p is most common (filters, amplifiers, cables). Comment lines start with "!", the options line starts with "#".'), /*#__PURE__*/React.createElement(Term, {
+    name: "# Hz S MA R 50",
+    formula: "opsiyonel ba\u015Fl\u0131k sat\u0131r\u0131"
+  }, TR ? 'Sırayla: frekans birimi (Hz/kHz/MHz/GHz), parametre tipi (S), veri formatı (MA/DB/RI), referans empedans. Eksikse varsayılan: GHz S MA R 50.' : 'Sequentially: frequency unit (Hz/kHz/MHz/GHz), parameter type (S), data format (MA/DB/RI), reference impedance. Defaults: GHz S MA R 50.'), /*#__PURE__*/React.createElement(Term, {
+    name: "MA",
+    formula: "magnitude / angle (derece)"
+  }, TR ? 'Lineer genlik + derece cinsinden faz. En yaygın saklama formatı.' : 'Linear magnitude + phase in degrees. The most common storage format.'), /*#__PURE__*/React.createElement(Term, {
+    name: "DB",
+    formula: "20\xB7log\u2081\u2080|S| / angle (derece)"
+  }, TR ? 'dB cinsinden genlik + derece cinsinden faz.' : 'Magnitude in dB + phase in degrees.'), /*#__PURE__*/React.createElement(Term, {
+    name: "RI",
+    formula: "real / imaginary"
+  }, TR ? 'Kompleks sayı doğrudan reel ve sanal bileşenleriyle.' : 'Complex number stored as real and imaginary parts.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? '2-port kolon sırası' : '2-port column ordering',
+    formula: "f  S11  S21  S12  S22"
+  }, TR ? '2-portta sıra önemlidir: S₁₁\'den sonra S₂₁ gelir (S₁₂ değil). 1-port: f S11. 3+ portlarda satır satır 3×3, 4×4 matris saklanır.' : 'For 2-port the column order is critical: S₁₁ is followed by S₂₁ (not S₁₂). 1-port: f S11. 3+ ports use multi-line block storage.')), /*#__PURE__*/React.createElement(Section, {
+    id: "gorunum",
+    title: TR ? '4. Görünümler' : '4. Views'
+  }, /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Genlik (Magnitude)' : 'Magnitude',
+    formula: "|S| veya 20\xB7log\u2081\u2080|S| [dB]"
+  }, TR ? 'En yaygın görünüm. dB ekseninde filtre geçirgenliği ve geri dönüş zayıflaması net görünür. Lineer genlik ölçek dar dinamik aralık için tercih edilir.' : 'The most common view. dB scale clearly shows filter passband and return loss across a wide dynamic range; linear scale is useful for narrow dynamic range.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Faz' : 'Phase',
+    formula: "\u2220S [\xB0]"
+  }, TR ? 'Kompleks S\'nin açısı, ±180° aralığında. Sürekli faz için "unwrap" gerekir — sıçramaları (örn. 179° → −179°) düzgün eğriye dönüştürür.' : 'The angle of complex S, in the ±180° range. For a continuous phase you need to "unwrap" — turning ±180° jumps into a smooth curve.'), /*#__PURE__*/React.createElement(Term, {
+    name: "VSWR",
+    formula: "(1+|\u0393|)/(1\u2212|\u0393|)"
+  }, TR ? 'Voltage Standing Wave Ratio. Yansıma katsayısının pratik bir göstergesi. VSWR=1 mükemmel eşleşme, VSWR=2 (|Γ|≈0.33) çoğu uygulama için kabul edilebilir. VSWR ≥ 100 olarak sınırlanmıştır (sayısal kararlılık için).' : 'Voltage Standing Wave Ratio — a practical reflection metric. VSWR=1 is a perfect match, VSWR=2 (|Γ|≈0.33) is acceptable for most uses. We clamp VSWR ≤ 100 for numerical stability.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Geri Dönüş Kaybı (RL)' : 'Return Loss (RL)',
+    formula: "RL = \u221220\xB7log\u2081\u2080|\u0393| [dB]"
+  }, TR ? 'Bir portta ne kadar enerjinin geri yansımadığını dB olarak ifade eder. RL = 10 dB → güç yansıması ~%10; RL = 20 dB → ~%1. Anten standardı genelde RL ≥ 10 dB.' : 'Tells you how much energy is NOT reflected, in dB. RL = 10 dB → ~10% reflected power; RL = 20 dB → ~1%. Antenna spec is usually RL ≥ 10 dB.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Grup Gecikme' : 'Group Delay',
+    formula: "\u03C4 = \u2212d\u03C6/d\u03C9 [s]"
+  }, TR ? 'Fazın frekansa göre türevinin negatifi. Sinyalin filtreden geçme süresi. Düz grup gecikme = bozulmasız iletim. Filtre kenarlarında genelde tepe yapar (sallanma). Birim: s, μs, ns, ps (otomatik seçilir).' : 'Negative derivative of phase w.r.t. angular frequency. The signal transit time through the network. Flat group delay = distortion-free transmission. Filter edges typically show peaks. Units auto-selected: s, μs, ns, ps.')), /*#__PURE__*/React.createElement(Section, {
+    id: "smith",
+    title: TR ? '5. Smith Chart' : '5. Smith chart'
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-center my-3"
+  }, /*#__PURE__*/React.createElement(SmithDiagram, null)), /*#__PURE__*/React.createElement("p", null, TR ? 'Smith chart, kompleks yansıma katsayısı Γ\'yı bir birim daire içine yerleştirir ve aynı düzlemde normalize empedans z = Z/Z₀ veya admitans y = Y·Z₀ okunabilir. Anten, filtre ve eşleme ağı tasarımının görsel dili.' : 'The Smith chart maps complex reflection Γ onto a unit circle while letting you read normalized impedance z = Z/Z₀ or admittance y = Y·Z₀ in the same plane. The visual language of antenna, filter, and matching network design.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Birim daire' : 'Unit circle',
+    formula: "|\u0393| = 1"
+  }, TR ? 'Pasif sistemlerin sınırı. Çember üstündeki noktalar = saf reaktif (kayıpsız) yansıtıcılar (açık, kısa, reaktans).' : 'Boundary for passive systems. Points on the circle are purely reactive (lossless) reflectors (open, short, pure reactance).'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Direnç (r) çemberleri' : 'Resistance (r) circles'
+  }, TR ? 'Reel eksen boyunca, soldan sağa: r=0 (kısa), r=0.2, r=0.5, r=1 (eşleşme), r=2, r=5, r=∞ (açık).' : 'Along the real axis, left to right: r=0 (short), r=0.2, r=0.5, r=1 (match), r=2, r=5, r=∞ (open).'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Reaktans (x) yayları' : 'Reactance (x) arcs'
+  }, TR ? 'Üst yarım = +jx (endüktif), alt yarım = −jx (kapasitif). x=±1 yayı r=1 ile kesişiyorsa nokta z = 1±j1.' : 'Upper half = +jx (inductive), lower half = −jx (capacitive). The x=±1 arc meets r=1 at z = 1±j1.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Z = R + jX' : 'Z = R + jX',
+    formula: "Z = Z\u2080 \xB7 (1 + \u0393)/(1 \u2212 \u0393)"
+  }, TR ? 'Empedans = direnç (R, kaybı temsil eder) + reaktans (X, enerji depolama). X>0 endüktif, X<0 kapasitif. Smith chart üzerinde hover yaparken popup\'ta görüntülenir.' : 'Impedance = resistance (R, loss) + reactance (X, energy storage). X>0 inductive, X<0 capacitive. Shown in the hover popup on the chart.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Y = G + jB' : 'Y = G + jB',
+    formula: "Y = 1/Z = G + jB [S]"
+  }, TR ? 'Admitans: empedansın tersi. G iletkenlik (siemens, S), B suseptans. Paralel devre analizinde kullanışlı.' : 'Admittance: inverse of impedance. G conductance (siemens, S), B susceptance. Useful for parallel network analysis.')), /*#__PURE__*/React.createElement(Section, {
+    id: "iq",
+    title: TR ? '6. I/Q Sinyal Gösterimi' : '6. I/Q signal representation'
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-center my-3"
+  }, /*#__PURE__*/React.createElement(IQDiagram, null)), /*#__PURE__*/React.createElement("p", null, TR ? 'Bir RF sinyali s(t) = A(t)·cos(2πfc·t + φ(t)) şeklinde yazılabilir. Bu, kompleks bir baseband sinyal I(t)+jQ(t) ile temsil edilir: I = A·cos(φ), Q = A·sin(φ). Tüm modern SDR\'ler bu çiftli akışı kaydeder.' : 'An RF signal s(t) = A(t)·cos(2πfc·t + φ(t)) can be written as a complex baseband signal I(t)+jQ(t): I = A·cos(φ), Q = A·sin(φ). All modern SDRs record this complex stream.'), /*#__PURE__*/React.createElement(Term, {
+    name: "I (In-phase)",
+    formula: "I = Re{z} = A\xB7cos(\u03C6)"
+  }, TR ? 'Kompleks örneğin reel bileşeni. Taşıyıcının cosinüs bileşeni ile çarpılıp alçak geçiren filtreden geçirilerek elde edilir.' : 'Real part of the complex sample. Obtained by mixing with the cosine of the carrier and low-pass filtering.'), /*#__PURE__*/React.createElement(Term, {
+    name: "Q (Quadrature)",
+    formula: "Q = Im{z} = A\xB7sin(\u03C6)"
+  }, TR ? 'Kompleks örneğin sanal bileşeni. Taşıyıcının sinüs bileşeniyle çarpılıp alçak geçiren filtre.' : 'Imaginary part. Obtained by mixing with the sine of the carrier and low-pass filtering.'), /*#__PURE__*/React.createElement(Term, {
+    name: "fs (sample rate)",
+    formula: "\xF6rnek/saniye [Hz]"
+  }, TR ? 'Bir saniyede kaç (I,Q) çifti kaydedildi. Nyquist kuralı: temsil edilebilen maksimum sinyal bant genişliği = fs (baseband\'de tek taraflı değil, çift taraflı). 1 MS/s = 1 MHz bant genişliği.' : 'Pairs of (I,Q) recorded per second. Nyquist: the representable signal bandwidth equals fs (two-sided at baseband). 1 MS/s = 1 MHz of bandwidth.'), /*#__PURE__*/React.createElement(Term, {
+    name: "fc (center frequency)",
+    formula: "ta\u015F\u0131y\u0131c\u0131 frekans\u0131 [Hz]"
+  }, TR ? 'RF örnekleme noktası. Baseband\'de I/Q ile temsil edilen sinyal, gerçekte fc etrafında merkezlenmiş bir banttır. Spektrum görünümünde X ekseni (k·fs/N + fc) olarak ölçeklenir.' : 'RF capture frequency. The I/Q baseband represents a band centered at fc. The spectrum view scales the x-axis as (k·fs/N + fc).')), /*#__PURE__*/React.createElement(Section, {
+    id: "iq-views",
+    title: TR ? '7. I/Q Görünümleri' : '7. I/Q views'
+  }, /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Zaman alanı (I & Q üst üste)' : 'Time domain (I & Q overlaid)'
+  }, TR ? 'I(t) ve Q(t) iki ayrı eğri olarak. Modülasyon tipini tahmin etmek zor; daha çok envelope/konstelasyon kullanışlı.' : 'I(t) and Q(t) as two overlaid traces. Hard to identify modulation; envelope/constellation usually more useful.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Zarf (envelope)' : 'Envelope',
+    formula: "|z(t)| = \u221A(I\xB2 + Q\xB2)"
+  }, TR ? 'Kompleks sinyalin anlık genliği. AM demodülasyonu doğrudan budur. Modülasyon olmayan sabit ton için sabittir.' : 'Instantaneous amplitude of the complex signal. AM demodulation IS this. Constant for an unmodulated carrier.'), /*#__PURE__*/React.createElement(Term, {
+    name: "\u2220z(t)",
+    formula: "\u03C6(t) = atan2(Q, I)"
+  }, TR ? 'Anlık faz, radyan veya derece. FM demodülasyonu d/dt[φ(t)] ile yapılır.' : 'Instantaneous phase. FM demodulation = d/dt[φ(t)].'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Konstelasyon' : 'Constellation',
+    formula: "scatter(I, Q)"
+  }, TR ? 'I-Q düzlemindeki nokta bulutu. BPSK 2 nokta, QPSK 4 nokta, 16-QAM 4×4 grid, 64-QAM 8×8. Nokta yığılması = düşük gürültü, dağılım = SNR düşük. Senkronlanmamış yakalamalarda halka şeklinde görünür.' : 'Point cloud in the I-Q plane. BPSK: 2 points, QPSK: 4, 16-QAM: 4×4 grid, 64-QAM: 8×8. Tight clusters = low noise; spread = poor SNR. Unsynchronized captures appear as rings.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'FFT spektrumu' : 'FFT spectrum'
+  }, TR ? 'Kompleks FFT, çift taraflı spektrum verir (negatif ve pozitif frekanslar). fftshift ile 0 Hz merkeze alınır. dB normalize: 20·log₁₀(|X[k]|/N).' : 'Complex FFT yields a two-sided spectrum (negative and positive frequencies). fftshift centers 0 Hz. dB normalization: 20·log₁₀(|X[k]|/N).')), /*#__PURE__*/React.createElement(Section, {
+    id: "iq-format",
+    title: TR ? '8. Binary IQ formatları' : '8. Binary IQ formats'
+  }, /*#__PURE__*/React.createElement(Term, {
+    name: ".cfile / .fc32 (complex float32 LE)"
+  }, TR ? 'GNU Radio File Source/Sink\'in yaygın formatı. Her örnek: 4 bayt float I + 4 bayt float Q, little-endian. Yüksek dinamik aralık (~138 dB), ama 2× yer kaplar.' : 'GNU Radio File Source/Sink default. Each sample: 4-byte float I + 4-byte float Q, little-endian. High dynamic range (~138 dB) but takes 2× the space.'), /*#__PURE__*/React.createElement(Term, {
+    name: ".sc16 / .ci16 (complex int16 LE)"
+  }, TR ? 'USRP/Ettus over-the-wire formatı. 2 bayt int I + 2 bayt int Q. Daha kompakt, ~96 dB dinamik. Genellikle ±32767 aralığı.' : 'USRP/Ettus over-the-wire format. 2-byte int I + 2-byte int Q. More compact, ~96 dB dynamic range. Usually ±32767.'), /*#__PURE__*/React.createElement(Term, {
+    name: ".cs8 / .ci8 (complex int8)"
+  }, TR ? 'RTL-SDR\'nin doğal formatı. 1 bayt I + 1 bayt Q, genelde offset binary (128 = 0). En kompakt, ~48 dB dinamik.' : 'Native RTL-SDR format. 1-byte I + 1-byte Q, usually offset binary (128 = zero). Most compact, ~48 dB dynamic.'), /*#__PURE__*/React.createElement(Term, {
+    name: "SigMF (.sigmf-data + .sigmf-meta)"
+  }, TR ? 'Signal Metadata Format — açık standart. Binary veri (.sigmf-data, çoğu zaman cf32_le) + JSON metadata (.sigmf-meta) çifti. JSON\'da sample_rate, center_frequency, datatype, annotations vb. saklanır.' : 'Signal Metadata Format — open standard. Binary data (.sigmf-data, typically cf32_le) paired with a JSON metadata file (.sigmf-meta) that stores sample_rate, center_frequency, datatype, annotations, etc.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Otomatik fs/fc algılama' : 'Auto fs/fc detection'
+  }, TR ? 'Text dosyalarda parser ilk 20 satırdaki yorum satırlarını (#, %, !) tarar ve "fs = 44100 Hz", "sample_rate: 1e6", "fc = 433 MHz" gibi notları okur. Birimler (kHz, MHz, GHz, kS/s, MS/s, GS/s) otomatik dönüştürülür.' : 'For text files, the parser scans up to 20 leading comment lines (#, %, !) for "fs = 44100 Hz", "sample_rate: 1e6", "fc = 433 MHz" tags. Units (kHz, MHz, GHz, kS/s, MS/s, GS/s) auto-convert.')), /*#__PURE__*/React.createElement(Section, {
+    id: "wf",
+    title: TR ? '9. Dalga formu' : '9. Waveform'
+  }, /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Tek kolon' : 'Single column'
+  }, TR ? 'Satır başına bir örnek (genlik). Zaman sırası örtüktür; fs kullanıcı veya yorum satırından gelir.' : 'One sample (amplitude) per row. Time order is implicit; fs comes from the user or comment line.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Çok kolon (her kolon ayrı kanal)' : 'Multi-column (each column a channel)'
+  }, TR ? 'CSV başlığı varsa kanal adları olarak kullanılır. Aksi halde CH1, CH2, ...' : 'CSV header is used as channel names. Otherwise CH1, CH2, ...'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'İlk kolon zaman' : 'First column is time'
+  }, TR ? 'Parser ilk kolonun monotonik artan değerler içerip içermediğini kontrol eder; eğer öyleyse zaman ekseni olarak yorumlar ve fs = 1/Δt türetir. Kalan kolonlar kanal olarak alınır.' : 'The parser checks whether the first column is monotonically increasing; if so it is treated as a time axis and fs = 1/Δt is derived. Remaining columns become channels.'), /*#__PURE__*/React.createElement(Term, {
+    name: "WAV (RIFF/WAVE PCM16)"
+  }, TR ? 'Mono veya çok kanallı PCM16. fs RIFF başlığından okunur (44100, 22050, 48000 vb. yaygın). Astropy/Audacity/ffmpeg ile uyumlu. Her kanal ayrı bir izleme olarak görüntülenir.' : 'Mono or multi-channel PCM16. fs is read from the RIFF header (44100, 22050, 48000 are common). Compatible with Audacity/ffmpeg/MATLAB. Each channel is a separate trace.')), /*#__PURE__*/React.createElement(Section, {
+    id: "fft",
+    title: TR ? '10. FFT ve Spektrum' : '10. FFT and spectrum'
+  }, /*#__PURE__*/React.createElement("p", null, TR ? 'Discrete Fourier Transform (DFT), N örneklik bir sinyali N frekans bileşenine ayrıştırır. FFT, bunu O(N·logN) zamanda hesaplayan algoritmadır.' : 'The Discrete Fourier Transform decomposes an N-sample signal into N frequency components. FFT computes this in O(N·logN) time.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Bin frekansı' : 'Bin frequency',
+    formula: "f_k = k \xB7 fs / N"
+  }, TR ? '0-indeksli k\'inci bin\'in temsil ettiği frekans. Tek taraflı reel-girdi FFT\'de k = 0..N/2; çift taraflı kompleks-girdi FFT\'de fftshift sonrası k = −N/2..N/2.' : 'Frequency represented by the k-th bin (0-indexed). For one-sided real FFT k = 0..N/2; for two-sided complex FFT after fftshift, k = −N/2..N/2.'), /*#__PURE__*/React.createElement(Term, {
+    name: "\u0394f",
+    formula: "\u0394f = fs / N"
+  }, TR ? 'Frekans çözünürlüğü: iki bin arası mesafe. Daha büyük N → daha ince çözünürlük (daha yakın spektral hatları ayırt eder). Veri Atlası\'nda FFT boyutu seçici (1024–16384) bu Δf\'i kontrol eder; örnek yetersizse zero-pad uygulanır.' : 'Frequency resolution: spacing between bins. Larger N → finer resolution (separates closely spaced lines). The FFT size selector (1024–16384) controls Δf; insufficient samples are zero-padded.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'fftshift' : 'fftshift'
+  }, TR ? 'Kompleks FFT çıktısının ilk yarısı (pozitif freq) + ikinci yarısı (negatif freq) sıralıdır. fftshift bu sırayı (negatif | 0 | pozitif) şeklinde dizer, görselleştirme için gereklidir.' : 'A complex FFT outputs positive-freq first half + negative-freq second half. fftshift reorders it as (negative | 0 | positive) for visualization.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Zero-padding' : 'Zero-padding'
+  }, TR ? 'Sinyal sonuna sıfır ekleyerek FFT boyutunu artırır. Daha ince frekans örnekleme verir ama gerçek çözünürlüğü artırmaz — sadece interpolasyon. Pik konumlarını okumak için faydalı.' : 'Padding the signal with zeros to increase FFT size. Gives finer frequency sampling but not actual resolution — it interpolates. Useful for picking peak positions.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'dB normalleştirme' : 'dB normalization',
+    formula: "20\xB7log\u2081\u2080(|X[k]|/N)"
+  }, TR ? 'Spektrumu ölçek-bağımsız hale getirmek için. Sinyalin RMS güç-yoğunluğuna karşılık gelir (Parseval).' : 'Makes the spectrum scale-independent. Corresponds to RMS power-spectral density (Parseval).')), /*#__PURE__*/React.createElement(Section, {
+    id: "window",
+    title: TR ? '11. Pencere fonksiyonları' : '11. Window functions'
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-center my-3"
+  }, /*#__PURE__*/React.createElement(WindowDiagram, null)), /*#__PURE__*/React.createElement("p", null, TR ? 'FFT, sinyalin sonsuza dek tekrar ettiğini varsayar. Gerçekte sinyal aniden kesilir → ana spektral hattan etrafa yan-loblar saçılır ("spektral kaçak"). Pencere fonksiyonu sinyalin uçlarını yumuşatır.' : 'FFT assumes the signal repeats forever. In reality the signal is abruptly cut → energy leaks into side-lobes around the main spectral line ("spectral leakage"). Window functions taper the signal edges.'), /*#__PURE__*/React.createElement(Term, {
+    name: "Rectangular (rect)",
+    formula: "w[n] = 1"
+  }, TR ? 'Pencere yok. En keskin ana lob, en yüksek yan loblar (−13 dB). Frekansı tam bilinen sinüs için iyi; gürültülü/karışık sinyal için kötü.' : 'No window. Narrowest main lobe, highest side lobes (−13 dB). Good for known-frequency sines, bad for noisy/multi-tone signals.'), /*#__PURE__*/React.createElement(Term, {
+    name: "Hann",
+    formula: "w[n] = 0.5\xB7(1 \u2212 cos(2\u03C0n/N))"
+  }, TR ? 'Dengeli seçim — orta genişlikli ana lob, yan lob −31 dB. Genel amaçlı default.' : 'Balanced — medium main lobe, side lobes at −31 dB. The general-purpose default.'), /*#__PURE__*/React.createElement(Term, {
+    name: "Hamming",
+    formula: "w[n] = 0.54 \u2212 0.46\xB7cos(2\u03C0n/N)"
+  }, TR ? 'Hann\'a benzer ama ilk yan-lob daha bastırılmış (−42 dB). Tek-tonlu pikleri yakalamak için biraz daha iyi.' : 'Similar to Hann but first side-lobe more suppressed (−42 dB). Slightly better for single-tone detection.'), /*#__PURE__*/React.createElement(Term, {
+    name: "Blackman",
+    formula: "0.42 \u2212 0.5\xB7cos(2\u03C0n/N) + 0.08\xB7cos(4\u03C0n/N)"
+  }, TR ? '3-terimli. En düşük yan-loblar (−58 dB), en geniş ana lob. Geniş dinamik aralık spektrum analizi için.' : '3-term. Lowest side-lobes (−58 dB), widest main lobe. For wide-dynamic-range spectrum analysis.')), /*#__PURE__*/React.createElement(Section, {
+    id: "marker",
+    title: TR ? '12. İmleç & diğer' : '12. Marker & misc'
+  }, /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'İmleç (marker)' : 'Marker'
+  }, TR ? 'S-parametre grafiklerinde sol tıkla bir frekans seçilir. Tüm kutular ve sağdaki panel o frekansta okur: |S| dB, ∠S °, VSWR, RL, Z = R+jX Ω, Y = G+jB mS, grup gecikme. Smith chart\'ta hover edilen noktanın yanında popup çıkar.' : 'Left-click on any S-parameter plot picks a frequency. All tiles and the right-hand panel read at that frequency: |S| dB, ∠S °, VSWR, RL, Z = R+jX Ω, Y = G+jB mS, group delay. On Smith chart the popup anchors to the hovered point.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Aktif kanal (FFT)' : 'Active channel (FFT)'
+  }, TR ? 'Dalga formu/IQ sekmelerinde, çoklu dosya yüklendiğinde dropdown ile aktif olan seçilir. FFT/konstelasyon/zarf görünümleri sadece aktif olana uygulanır; zaman alanı tüm kanalları gösterir.' : 'In Waveform/IQ tabs, the active file/channel is selected via a dropdown when multiple are loaded. FFT/constellation/envelope views apply to the active one only; the time-domain view shows all channels.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Normalleştirme & noktalar' : 'Normalization & points'
+  }, TR ? 'CSV/dalga formu grafiklerinde "normalize" maks-mutlak değere böler (eğriler aynı ölçekte karşılaştırılır). "Noktaları göster" örnek noktalarını işaretler — düşük sample rate sinyallerde işe yarar.' : '"Normalize" divides curves by max-abs (so different scales overlay). "Show points" marks sample points — useful for low sample-rate signals.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'PNG/JPG/SVG dışa aktarma' : 'PNG/JPG/SVG export'
+  }, TR ? 'Her grafik kartının üst köşesinde mevcut. PNG/JPG 3× çözünürlüklü raster, SVG vektör. Tema arka planı korunur.' : 'On the top of each chart card. PNG/JPG are 3× raster, SVG is vector. Theme background is preserved.'), /*#__PURE__*/React.createElement(Term, {
+    name: TR ? 'Tema ve dil' : 'Theme & language'
+  }, TR ? 'Sağ üstte; açık/gri/koyu tema ve TR/EN. Seçim tarayıcıda saklanır.' : 'Top-right; light/gray/dark theme and TR/EN. Stored in the browser.')), /*#__PURE__*/React.createElement("div", {
+    className: "text-center text-[10px] text-[var(--ink-muted)] italic py-4",
+    style: {
+      fontFamily: FONT_SERIF
+    }
+  }, TR ? 'Eksik bir terim varsa veya örnek istiyorsan, sayfayı kapatıp İletişim üzerinden yazabilirsin.' : 'If a term is missing or you want an example, feel free to reach out via Contact.'));
+}
+
 // ─── NavTabs ───────────────────────────────────────────────────
 function NavTabs({
   route,
@@ -5313,6 +5992,9 @@ function NavTabs({
   }, {
     key: 'waveform',
     label: t('nav_waveform')
+  }, {
+    key: 'bilgi',
+    label: t('nav_bilgi')
   }];
   return /*#__PURE__*/React.createElement("nav", {
     className: "border-b border-[var(--border)] bg-[var(--bg-panel)]"
@@ -5825,7 +6507,7 @@ function App() {
     style: {
       fontFamily: FONT_MONO
     }
-  }, route === 'sparams' ? t('sparams_subtitle') : route === 'iq' ? t('iq_subtitle') : route === 'waveform' ? t('wf_subtitle') : t('subtitle')), /*#__PURE__*/React.createElement("h1", {
+  }, route === 'sparams' ? t('sparams_subtitle') : route === 'iq' ? t('iq_subtitle') : route === 'waveform' ? t('wf_subtitle') : route === 'bilgi' ? t('bilgi_subtitle') : t('subtitle')), /*#__PURE__*/React.createElement("h1", {
     className: "leading-none text-[var(--ink)]",
     style: {
       fontFamily: FONT_SERIF,
@@ -5833,14 +6515,14 @@ function App() {
       fontSize: 'clamp(2.5rem, 6vw, 4rem)',
       letterSpacing: '-0.02em'
     }
-  }, route === 'sparams' ? t('sparams_title_a') : route === 'iq' ? t('iq_title_a') : route === 'waveform' ? t('wf_title_a') : t('title_a'), ' ', /*#__PURE__*/React.createElement("span", {
+  }, route === 'sparams' ? t('sparams_title_a') : route === 'iq' ? t('iq_title_a') : route === 'waveform' ? t('wf_title_a') : route === 'bilgi' ? t('bilgi_title_a') : t('title_a'), ' ', /*#__PURE__*/React.createElement("span", {
     className: "italic text-[var(--accent)]"
-  }, route === 'sparams' ? t('sparams_title_b') : route === 'iq' ? t('iq_title_b') : route === 'waveform' ? t('wf_title_b') : t('title_b'))), /*#__PURE__*/React.createElement("p", {
+  }, route === 'sparams' ? t('sparams_title_b') : route === 'iq' ? t('iq_title_b') : route === 'waveform' ? t('wf_title_b') : route === 'bilgi' ? t('bilgi_title_b') : t('title_b'))), /*#__PURE__*/React.createElement("p", {
     className: "text-sm text-[var(--ink-soft)] mt-4 max-w-xl italic leading-relaxed",
     style: {
       fontFamily: FONT_SERIF
     }
-  }, route === 'sparams' ? t('sparams_intro') : route === 'iq' ? t('iq_intro') : route === 'waveform' ? t('wf_intro') : t('intro'))), /*#__PURE__*/React.createElement("div", {
+  }, route === 'sparams' ? t('sparams_intro') : route === 'iq' ? t('iq_intro') : route === 'waveform' ? t('wf_intro') : route === 'bilgi' ? t('bilgi_intro') : t('intro'))), /*#__PURE__*/React.createElement("div", {
     className: "flex flex-col items-end gap-4"
   }, /*#__PURE__*/React.createElement(Selectors, {
     theme: themeKey,
@@ -6594,6 +7276,11 @@ function App() {
     onWfFilesChange: setWfFiles,
     theme: theme,
     t: t
+  })), route === 'bilgi' && /*#__PURE__*/React.createElement("section", {
+    className: "space-y-6"
+  }, /*#__PURE__*/React.createElement(BilgiPage, {
+    t: t,
+    lang: lang
   })), /*#__PURE__*/React.createElement("footer", {
     className: "pt-8 pb-4 border-t border-[var(--border)] text-center"
   }, /*#__PURE__*/React.createElement("p", {
