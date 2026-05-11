@@ -1882,6 +1882,15 @@ function ChartCard({
   const [tempTitle, setTempTitle] = useState(chart.title);
   const [editingCol, setEditingCol] = useState(null);
   const [tempColName, setTempColName] = useState('');
+  const [isMaximized, setIsMaximized] = useState(false);
+  useEffect(() => {
+    if (!isMaximized) return;
+    const onKey = e => {
+      if (e.key === 'Escape') setIsMaximized(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isMaximized]);
   const buildConfig = useCallback((opts = {}) => {
     const {
       forExport = false
@@ -2177,7 +2186,9 @@ function ChartCard({
   };
   const cancelColEdit = () => setEditingCol(null);
   return /*#__PURE__*/React.createElement("div", {
-    className: "bg-[var(--bg-panel)] border border-[var(--border)] rounded-sm overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+    className: isMaximized ? "fixed inset-0 z-50 bg-[var(--bg)] p-3 md:p-6 overflow-auto" : "bg-[var(--bg-panel)] border border-[var(--border)] rounded-sm overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: isMaximized ? "bg-[var(--bg-panel)] border border-[var(--border)] rounded-sm overflow-hidden min-h-full flex flex-col" : "contents"
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between px-6 py-4 border-b border-[var(--border-soft)] bg-[var(--bg-panel)]"
   }, editingTitle ? /*#__PURE__*/React.createElement("input", {
@@ -2210,18 +2221,27 @@ function ChartCard({
     style: {
       fontFamily: FONT_MONO
     }
-  }, t('edit_title_hint'))), canDelete && /*#__PURE__*/React.createElement("button", {
+  }, t('edit_title_hint'))), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setIsMaximized(v => !v),
+    className: "text-[16px] text-[var(--ink-muted)] hover:text-[var(--accent)] px-2 py-1 transition-colors leading-none",
+    style: {
+      fontFamily: FONT_MONO
+    },
+    title: isMaximized ? t('restore') : t('maximize')
+  }, isMaximized ? '⤧' : '⤢'), canDelete && /*#__PURE__*/React.createElement("button", {
     onClick: onDelete,
     className: "text-[10px] uppercase tracking-[0.2em] text-[var(--ink-muted)] hover:text-[var(--danger)] transition-colors",
     style: {
       fontFamily: FONT_MONO
     }
-  }, t('delete'))), /*#__PURE__*/React.createElement("div", {
-    className: "grid grid-cols-1 lg:grid-cols-[1fr_320px] bg-[var(--bg)]"
+  }, t('delete')))), /*#__PURE__*/React.createElement("div", {
+    className: isMaximized ? "grid grid-cols-1 lg:grid-cols-[1fr_320px] bg-[var(--bg)] flex-1 min-h-0" : "grid grid-cols-1 lg:grid-cols-[1fr_320px] bg-[var(--bg)]"
   }, /*#__PURE__*/React.createElement("div", {
     className: "p-6 lg:p-8",
     style: {
-      minHeight: 440,
+      minHeight: isMaximized ? 'auto' : 440,
       position: 'relative'
     }
   }, chart.selectedSeries.size === 0 ? /*#__PURE__*/React.createElement("div", {
@@ -2242,7 +2262,7 @@ function ChartCard({
   }, t('pick_variable')))) : /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'relative',
-      height: 400
+      height: isMaximized ? 'calc(100vh - 180px)' : 400
     }
   }, /*#__PURE__*/React.createElement("canvas", {
     ref: canvasRef
@@ -2506,7 +2526,7 @@ function ChartCard({
     style: {
       fontFamily: FONT_SERIF
     }
-  }, t('export_caption'))))));
+  }, t('export_caption')))))));
 }
 
 // ─── Smith Chart yardımcıları ──────────────────────────────────
@@ -3337,6 +3357,14 @@ function SParamChartCard({
         maintainAspectRatio: false,
         animation: false,
         // S-param verisi tipik 1k+ nokta, anim performansı düşürür
+        layout: {
+          padding: {
+            top: 22,
+            right: 14,
+            bottom: 4,
+            left: 4
+          }
+        },
         interaction: {
           mode: 'index',
           intersect: false,
@@ -3583,32 +3611,32 @@ function SParamChartCard({
       fontFamily: FONT_SERIF
     }
   }, viewMode === 'mag' ? t('sparams_view_magnitude') : viewMode === 'phase' ? t('sparams_view_phase') : viewMode === 'vswr' ? t('sparams_view_vswr') : viewMode === 'groupdelay' ? t('sparams_view_group_delay') : viewMode === 'smith' ? t('sparams_view_smith') : viewMode), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-1.5",
+    className: "flex items-center gap-2",
     style: {
       fontFamily: FONT_MONO
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: resetZoom,
-    className: "text-[10px] uppercase tracking-wider text-[var(--ink-muted)] hover:text-[var(--accent)] px-1.5 py-0.5 transition-colors",
+    className: "text-[14px] text-[var(--ink-muted)] hover:text-[var(--accent)] px-2 py-1 transition-colors leading-none",
     title: t('reset_zoom')
   }, "\u27F2"), onMaximize && /*#__PURE__*/React.createElement("button", {
     onClick: onMaximize,
-    className: "text-[12px] text-[var(--ink-muted)] hover:text-[var(--accent)] px-1 py-0.5 transition-colors leading-none",
+    className: "text-[16px] text-[var(--ink-muted)] hover:text-[var(--accent)] px-2 py-1 transition-colors leading-none",
     title: isMaximized ? t('restore') : t('maximize')
   }, isMaximized ? '⤧' : '⤢'), /*#__PURE__*/React.createElement("button", {
     onClick: () => exportRaster('png'),
     disabled: selectedSeries.size === 0,
-    className: "text-[10px] uppercase tracking-wider text-[var(--ink-soft)] hover:text-[var(--accent)] px-1.5 py-0.5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
+    className: "text-[11px] uppercase tracking-wider text-[var(--ink-soft)] hover:text-[var(--accent)] px-2 py-1 transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
     title: t('export_png_title')
   }, "png"), /*#__PURE__*/React.createElement("button", {
     onClick: () => exportRaster('jpeg'),
     disabled: selectedSeries.size === 0,
-    className: "text-[10px] uppercase tracking-wider text-[var(--ink-soft)] hover:text-[var(--accent)] px-1.5 py-0.5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
+    className: "text-[11px] uppercase tracking-wider text-[var(--ink-soft)] hover:text-[var(--accent)] px-2 py-1 transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
     title: t('export_jpeg_title')
   }, "jpg"), /*#__PURE__*/React.createElement("button", {
     onClick: exportSVG,
     disabled: selectedSeries.size === 0,
-    className: "text-[10px] uppercase tracking-wider text-[var(--accent)] hover:text-[var(--ink)] px-1.5 py-0.5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
+    className: "text-[11px] uppercase tracking-wider text-[var(--accent)] hover:text-[var(--ink)] px-2 py-1 transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
     title: t('export_svg_title')
   }, "svg"))), /*#__PURE__*/React.createElement("div", {
     className: "p-3",
@@ -3920,6 +3948,17 @@ function MiniChart({
   const [normalize, setNormalize] = useState(false);
   const [showPoints, setShowPoints] = useState(false);
   const [showCfg, setShowCfg] = useState(false); // axis edit / settings dropdown
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  // ESC ile maximize kapat
+  useEffect(() => {
+    if (!isMaximized) return;
+    const onKey = e => {
+      if (e.key === 'Escape') setIsMaximized(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isMaximized]);
 
   // initial değişirse state'i de güncelle (örnek dosyalar yüklenince)
   useEffect(() => {
@@ -4148,7 +4187,11 @@ function MiniChart({
     setEditingTitle(false);
   }
   return /*#__PURE__*/React.createElement("div", {
-    className: "bg-[var(--bg-panel)] border border-[var(--border)] rounded-sm overflow-hidden"
+    className: isMaximized ? "fixed inset-0 z-50 bg-[var(--bg)] p-4 md:p-8 flex flex-col" : "bg-[var(--bg-panel)] border border-[var(--border)] rounded-sm overflow-hidden"
+  }, isMaximized && /*#__PURE__*/React.createElement("div", {
+    className: "absolute inset-0 -z-10 bg-[var(--bg)] opacity-95"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: isMaximized ? "bg-[var(--bg-panel)] border border-[var(--border)] rounded-sm overflow-hidden flex flex-col flex-1 min-h-0" : "contents"
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between px-3 py-1.5 border-b border-[var(--border-soft)] gap-2"
   }, editingTitle ? /*#__PURE__*/React.createElement("input", {
@@ -4179,27 +4222,31 @@ function MiniChart({
   }, title, " ", /*#__PURE__*/React.createElement("span", {
     className: "text-[var(--ink-muted)] not-italic opacity-50"
   }, "\u270E")), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-1 flex-shrink-0",
+    className: "flex items-center gap-2 flex-shrink-0",
     style: {
       fontFamily: FONT_MONO
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowCfg(v => !v),
-    className: `text-[10px] uppercase tracking-wider px-1.5 py-0.5 transition-colors ${showCfg ? 'text-[var(--accent)]' : 'text-[var(--ink-muted)] hover:text-[var(--accent)]'}`,
+    className: `text-[14px] px-2 py-1 transition-colors leading-none ${showCfg ? 'text-[var(--accent)]' : 'text-[var(--ink-muted)] hover:text-[var(--accent)]'}`,
     title: t('chart_settings')
   }, "\u2699"), /*#__PURE__*/React.createElement("button", {
     onClick: resetZoom,
-    className: "text-[10px] uppercase text-[var(--ink-muted)] hover:text-[var(--accent)] px-1 py-0.5 transition-colors",
+    className: "text-[14px] text-[var(--ink-muted)] hover:text-[var(--accent)] px-2 py-1 transition-colors leading-none",
     title: t('reset_zoom')
   }, "\u27F2"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setIsMaximized(v => !v),
+    className: "text-[16px] text-[var(--ink-muted)] hover:text-[var(--accent)] px-2 py-1 transition-colors leading-none",
+    title: isMaximized ? t('restore') : t('maximize')
+  }, isMaximized ? '⤧' : '⤢'), /*#__PURE__*/React.createElement("button", {
     onClick: () => exportRaster('png'),
-    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)] hover:text-[var(--accent)] px-1 py-0.5 transition-colors"
+    className: "text-[11px] uppercase tracking-wider text-[var(--ink-soft)] hover:text-[var(--accent)] px-2 py-1 transition-colors"
   }, "png"), /*#__PURE__*/React.createElement("button", {
     onClick: () => exportRaster('jpeg'),
-    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)] hover:text-[var(--accent)] px-1 py-0.5 transition-colors"
+    className: "text-[11px] uppercase tracking-wider text-[var(--ink-soft)] hover:text-[var(--accent)] px-2 py-1 transition-colors"
   }, "jpg"), /*#__PURE__*/React.createElement("button", {
     onClick: exportSVG,
-    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)] hover:text-[var(--accent)] px-1 py-0.5 transition-colors"
+    className: "text-[11px] uppercase tracking-wider text-[var(--accent)] hover:text-[var(--ink)] px-2 py-1 transition-colors"
   }, "svg"))), showCfg && /*#__PURE__*/React.createElement("div", {
     className: "px-3 py-2 border-b border-[var(--border-soft)] bg-[var(--bg)] space-y-2"
   }, /*#__PURE__*/React.createElement("div", {
@@ -4256,13 +4303,17 @@ function MiniChart({
   }), /*#__PURE__*/React.createElement("span", {
     className: "uppercase tracking-wider text-[var(--ink-soft)]"
   }, t('chart_show_points'))))), /*#__PURE__*/React.createElement("div", {
-    style: {
+    style: isMaximized ? {
+      padding: 8,
+      flex: 1,
+      minHeight: 0
+    } : {
       height,
       padding: 8
     }
   }, /*#__PURE__*/React.createElement("canvas", {
     ref: canvasRef
-  })));
+  }))));
 }
 
 // ─── Örnek dosya galerisi ──────────────────────────────────────
