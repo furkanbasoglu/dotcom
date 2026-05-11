@@ -1220,6 +1220,7 @@ function extractSignalMetadata(text) {
     centerFreq: fcMatch ? toHz(parseFloat(fcMatch[1]), fcMatch[2]) : null
   };
 }
+if (typeof window !== 'undefined') window.extractSignalMetadata = extractSignalMetadata;
 function parseIQData(text, filename) {
   // Önce yorum satırlarından metadata çek (fs, fc) — generator'ların yazdığı
   // "# fs = 1.0 MS/s" veya "# fs = 500 kS/s" gibi notları otomatik oku.
@@ -1742,11 +1743,18 @@ function parseCSV(text, name) {
 }
 const getFileLabel = (file, index) => file.label || `D${index + 1}`;
 const getColLabel = (file, col) => file.columnLabels && file.columnLabels[col] || col;
-const safeFilename = s => String(s || 'chart').replace(/[^\w\-.]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'chart';
+
+// Top-level helpers — explicit `function` declarations + window bindings.
+// Some hosts (Cloudflare auto-minify, Astro pipeline) can mangle top-level
+// `const` arrow functions or wrap modules in a way that hides them from
+// other parts of the bundle. Function declarations + window.X is bulletproof.
+function safeFilename(s) {
+  return String(s || 'chart').replace(/[^\w\-.]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'chart';
+}
 
 // Blob'u (text veya binary) tarayıcıdan indirme. Top-level — SampleGallery,
 // ChartCard ve diğer komponentlerin hepsi kullanır.
-const downloadBlob = (blob, filename) => {
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.download = filename;
@@ -1755,7 +1763,13 @@ const downloadBlob = (blob, filename) => {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-};
+}
+
+// Explicit window bindings — module-mode / minifier ne yaparsa yapsın erişilir.
+if (typeof window !== 'undefined') {
+  window.safeFilename = safeFilename;
+  window.downloadBlob = downloadBlob;
+}
 
 // ─── Themed background plugin ──────────────────────────────────
 function makeBgPlugin(color) {
@@ -2834,13 +2848,20 @@ function SmithChartView({
   const markerR2 = Math.max(0.007, 0.018 / view.scale);
   const hoverR = Math.max(0.012, 0.030 / view.scale);
   return /*#__PURE__*/React.createElement("div", {
-    ref: containerRef,
     style: {
       position: 'relative',
       width: '100%',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    ref: containerRef,
+    style: {
+      position: 'relative',
+      width: size,
+      height: size,
+      flexShrink: 0
     }
   }, /*#__PURE__*/React.createElement("svg", {
     ref: svgRef,
@@ -3047,7 +3068,7 @@ function SmithChartView({
     }, infoBlock.s.fileLabel, " \xB7 ", infoBlock.s.param), /*#__PURE__*/React.createElement("div", null, "f = ", /*#__PURE__*/React.createElement("span", {
       className: "text-[var(--accent)]"
     }, (infoBlock.f / 1e9).toPrecision(5), " GHz")), /*#__PURE__*/React.createElement("div", null, "|\u0393| = ", infoBlock.magG.toFixed(4)), /*#__PURE__*/React.createElement("div", null, "\u2220\u0393 = ", infoBlock.phiG.toFixed(2), "\xB0"), /*#__PURE__*/React.createElement("div", null, "Z = ", infoBlock.Z.re.toFixed(2), " ", infoBlock.Z.im >= 0 ? '+' : '−', " j", Math.abs(infoBlock.Z.im).toFixed(2), " \u03A9"), /*#__PURE__*/React.createElement("div", null, "VSWR = ", infoBlock.vswr), /*#__PURE__*/React.createElement("div", null, "RL = ", infoBlock.rl.toFixed(2), " dB"));
-  })());
+  })()));
 }
 
 // ─── S-Parameter chart card ────────────────────────────────────
@@ -4449,6 +4470,39 @@ function IQPage({
       alert(`${filename}: ${err.message}`);
     }
   }
+  // Binary üretici sonucundan (Uint8Array) doğrudan yükleme — sample
+  // galerisinde .cfile/.sc16 vb. butonları için kullanılır.
+  function loadFromBinary(uint8, filename) {
+    try {
+      const data = parseIQBinary(uint8.buffer.slice(uint8.byteOffset, uint8.byteOffset + uint8.byteLength), filename);
+      const item = {
+        ...data,
+        id: Date.now() + Math.random()
+      };
+      onIQFilesChange([...iqFiles, item]);
+      setActiveId(item.id);
+    } catch (err) {
+      console.error('IQ binary load error:', filename, err);
+      alert(`${filename}: ${err.message}`);
+    }
+  }
+  // SigMF: data (binary) + meta (JSON text) birlikte
+  function loadFromSigMF(dataUint8, metaText, baseName) {
+    try {
+      const meta = JSON.parse(metaText);
+      const buf = dataUint8.buffer.slice(dataUint8.byteOffset, dataUint8.byteOffset + dataUint8.byteLength);
+      const data = parseSigMFData(buf, meta, baseName);
+      const item = {
+        ...data,
+        id: Date.now() + Math.random()
+      };
+      onIQFilesChange([...iqFiles, item]);
+      setActiveId(item.id);
+    } catch (err) {
+      console.error('SigMF load error:', baseName, err);
+      alert(`${baseName}: ${err.message}`);
+    }
+  }
   function loadSample() {
     loadFromText(makeIQ_csv_16qam(), 'sample_16qam_8sps.csv');
   }
@@ -4488,8 +4542,8 @@ function IQPage({
     filename: 'iq_qpsk_2048.cfile',
     mimeType: 'application/octet-stream',
     binary: true,
-    generator: makeCfile_QPSK
-    // onLoad yok — binary text parser çözemez
+    generator: makeCfile_QPSK,
+    onLoad: () => loadFromBinary(makeCfile_QPSK(), 'iq_qpsk_2048.cfile')
   }, {
     key: 'iq_sc16_fm',
     label: 'FM ton · USRP',
@@ -4498,7 +4552,8 @@ function IQPage({
     filename: 'iq_fm_tone_4096.sc16',
     mimeType: 'application/octet-stream',
     binary: true,
-    generator: makeSC16_FM_tone
+    generator: makeSC16_FM_tone,
+    onLoad: () => loadFromBinary(makeSC16_FM_tone(), 'iq_fm_tone_4096.sc16')
   }, {
     key: 'iq_sigmf_qpsk',
     label: 'QPSK · SigMF',
@@ -4512,7 +4567,8 @@ function IQPage({
       filename: 'iq_qpsk_433MHz.sigmf-meta',
       mimeType: 'application/json',
       generator: makeSigMF_meta_QPSK
-    }]
+    }],
+    onLoad: () => loadFromSigMF(makeSigMF_data_QPSK(), makeSigMF_meta_QPSK(), 'iq_qpsk_433MHz')
   }];
   function removeFile(id) {
     onIQFilesChange(iqFiles.filter(f => f.id !== id));
@@ -4629,15 +4685,7 @@ function IQPage({
     style: {
       fontFamily: FONT_MONO
     }
-  }, t('select_file')), /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] text-[var(--ink-muted)]"
-  }, "\xB7"), /*#__PURE__*/React.createElement("button", {
-    onClick: loadSample,
-    className: "text-[10px] uppercase tracking-[0.2em] px-3 py-2 border border-[var(--border-hard)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors",
-    style: {
-      fontFamily: FONT_MONO
-    }
-  }, t('iq_sample')), /*#__PURE__*/React.createElement("input", {
+  }, t('select_file')), /*#__PURE__*/React.createElement("input", {
     ref: fileInputRef,
     type: "file",
     multiple: true,
@@ -4938,6 +4986,23 @@ function WaveformPage({
       alert(`${filename}: ${err.message}`);
     }
   }
+  // Binary üretici çıktısından (Uint8Array) WAV yükleme — sample galerisinde
+  // .wav butonlarında kullanılır.
+  function loadFromBinary(uint8, filename) {
+    try {
+      const buf = uint8.buffer.slice(uint8.byteOffset, uint8.byteOffset + uint8.byteLength);
+      const data = parseWAV(buf, filename);
+      const item = {
+        ...data,
+        id: Date.now() + Math.random()
+      };
+      onWfFilesChange([...wfFiles, item]);
+      setActiveId(item.id);
+    } catch (err) {
+      console.error('WF WAV load error:', filename, err);
+      alert(`${filename}: ${err.message}`);
+    }
+  }
   function loadSample() {
     loadFromText(makeWF_csv_2tone(), 'wf_2tone_AM.csv');
   }
@@ -4976,7 +5041,8 @@ function WaveformPage({
     filename: 'wf_tone_440Hz_22050.wav',
     mimeType: 'audio/wav',
     binary: true,
-    generator: makeWAV_mono_440Hz
+    generator: makeWAV_mono_440Hz,
+    onLoad: () => loadFromBinary(makeWAV_mono_440Hz(), 'wf_tone_440Hz_22050.wav')
   }, {
     key: 'wf_wav_stereo',
     label: 'Stereo chirp · WAV PCM16',
@@ -4985,7 +5051,8 @@ function WaveformPage({
     filename: 'wf_chirp_stereo_44100.wav',
     mimeType: 'audio/wav',
     binary: true,
-    generator: makeWAV_stereo_chirp
+    generator: makeWAV_stereo_chirp,
+    onLoad: () => loadFromBinary(makeWAV_stereo_chirp(), 'wf_chirp_stereo_44100.wav')
   }];
   function removeFile(id) {
     onWfFilesChange(wfFiles.filter(f => f.id !== id));
@@ -5078,15 +5145,7 @@ function WaveformPage({
     style: {
       fontFamily: FONT_MONO
     }
-  }, t('select_file')), /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] text-[var(--ink-muted)]"
-  }, "\xB7"), /*#__PURE__*/React.createElement("button", {
-    onClick: loadSample,
-    className: "text-[10px] uppercase tracking-[0.2em] px-3 py-2 border border-[var(--border-hard)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors",
-    style: {
-      fontFamily: FONT_MONO
-    }
-  }, t('wf_sample')), /*#__PURE__*/React.createElement("input", {
+  }, t('select_file')), /*#__PURE__*/React.createElement("input", {
     ref: fileInputRef,
     type: "file",
     multiple: true,
@@ -5861,26 +5920,7 @@ function App() {
     style: {
       fontFamily: FONT_MONO
     }
-  }, t('pick_file')), /*#__PURE__*/React.createElement("span", {
-    className: "text-[var(--ink-muted)] italic",
-    style: {
-      fontFamily: FONT_SERIF
-    }
-  }, t('or_sample')), /*#__PURE__*/React.createElement("button", {
-    onClick: loadSampleClimate,
-    className: "px-5 py-3 border border-[var(--ink)] text-[var(--ink)] uppercase tracking-[0.18em] text-[11px] hover:bg-[var(--ink)] hover:text-[var(--bg)] transition-colors",
-    style: {
-      fontFamily: FONT_MONO
-    },
-    title: t('sample_climate_hint')
-  }, t('sample_climate')), /*#__PURE__*/React.createElement("button", {
-    onClick: loadSampleS21,
-    className: "px-5 py-3 border border-[var(--ink)] text-[var(--ink)] uppercase tracking-[0.18em] text-[11px] hover:bg-[var(--ink)] hover:text-[var(--bg)] transition-colors",
-    style: {
-      fontFamily: FONT_MONO
-    },
-    title: t('sample_s21_hint')
-  }, t('sample_s21'))), /*#__PURE__*/React.createElement("p", {
+  }, t('pick_file'))), /*#__PURE__*/React.createElement("p", {
     className: "text-[10px] uppercase tracking-[0.2em] text-[var(--ink-muted)] mt-6",
     style: {
       fontFamily: FONT_MONO
@@ -6022,19 +6062,7 @@ function App() {
     style: {
       fontFamily: FONT_MONO
     }
-  }, t('pick_file')), /*#__PURE__*/React.createElement("span", {
-    className: "text-[var(--ink-muted)] italic",
-    style: {
-      fontFamily: FONT_SERIF
-    }
-  }, t('or_sample')), /*#__PURE__*/React.createElement("button", {
-    onClick: loadSpSample,
-    className: "px-5 py-3 border border-[var(--ink)] text-[var(--ink)] uppercase tracking-[0.18em] text-[11px] hover:bg-[var(--ink)] hover:text-[var(--bg)] transition-colors",
-    style: {
-      fontFamily: FONT_MONO
-    },
-    title: t('sparams_sample_hint')
-  }, t('sparams_sample'))), /*#__PURE__*/React.createElement("p", {
+  }, t('pick_file'))), /*#__PURE__*/React.createElement("p", {
     className: "text-[10px] uppercase tracking-[0.2em] text-[var(--ink-muted)] mt-6",
     style: {
       fontFamily: FONT_MONO
