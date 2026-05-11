@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Veri Atlası · Data Atlas</title>
+
+  <link rel="stylesheet" href="lib/fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+
+  <style>
+    html, body { margin: 0; padding: 0; }
+    body { font-family: 'Manrope Variable', system-ui, sans-serif; }
+    .scroll-soft::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+    #loading {
+      position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-family: 'Fraunces Variable', Georgia, serif; font-style: italic;
+      color: var(--accent); font-size: 1.5rem; pointer-events: none;
+    }
+  </style>
+
+  <script>
+    // Tema kayıt yüklenmeden önce ayarla — flash önle
+    (function() {
+      try {
+        var savedTheme = localStorage.getItem('vatlas-theme');
+        if (savedTheme === 'gray' || savedTheme === 'dark' || savedTheme === 'light') {
+          document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+        var savedLang = localStorage.getItem('vatlas-lang');
+        if (savedLang === 'en' || savedLang === 'tr') {
+          document.documentElement.setAttribute('lang', savedLang);
+        }
+      } catch(_) {}
+    })();
+  </script>
+</head>
+<body>
+  <div id="loading">…</div>
+  <div id="error" style="display:none; position:fixed; inset:0; padding:2rem; font-family:'JetBrains Mono Variable', monospace; font-size:13px; color:var(--danger); overflow:auto; white-space:pre-wrap; z-index:9999; background:var(--bg);"></div>
+  <div id="root"></div>
+
+  <script>
+    window.addEventListener('error', function(e) {
+      var box = document.getElementById('error');
+      var loading = document.getElementById('loading');
+      if (loading) loading.style.display = 'none';
+      box.style.display = 'block';
+      box.textContent =
+        '⚠ Error\n\n' +
+        'Message: ' + e.message + '\n' +
+        'Source: ' + (e.filename || '(unknown)') + '\n' +
+        'Line: ' + e.lineno + ', Col: ' + e.colno + '\n\n' +
+        (e.error && e.error.stack ? 'Stack:\n' + e.error.stack : '');
+    });
+  </script>
+
+  <script src="lib/react.production.min.js"></script>
+  <script src="lib/react-dom.production.min.js"></script>
+  <script src="lib/chart.umd.js"></script>
+  <script src="lib/chartjs-plugin-zoom.min.js"></script>
+  <script src="lib/papaparse.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
