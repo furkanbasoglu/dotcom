@@ -1191,7 +1191,39 @@ function parseIQBinary(buf, filename) {
   // Belirsiz: en yaygın olduğu için cf32 dene
   return parseIQ_complexFloat32(buf, filename);
 }
+
+// ─── Sinyal metadata çıkarıcı ──────────────────────────────────
+// Yorum satırlarından (# veya % ile başlayan) "fs = 44100 Hz",
+// "sample_rate: 1e6", "fc = 433 MHz" gibi metadata'yı yakalar.
+// Birim normalize edilir (Hz, kHz, MHz, GHz, S/s, kS/s, MS/s, GS/s).
+function extractSignalMetadata(text) {
+  const headerLines = [];
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < Math.min(20, lines.length); i++) {
+    const l = lines[i].trim();
+    if (l.startsWith('#') || l.startsWith('%') || l.startsWith('!')) headerLines.push(l);else if (l === '') continue;else break; // ilk veri satırından sonra dur
+  }
+  const header = headerLines.join(' ');
+  function toHz(value, unit) {
+    const u = (unit || '').toLowerCase();
+    if (u.startsWith('khz') || u.startsWith('ks/s') || u === 'k') return value * 1e3;
+    if (u.startsWith('mhz') || u.startsWith('ms/s') || u === 'm') return value * 1e6;
+    if (u.startsWith('ghz') || u.startsWith('gs/s') || u === 'g') return value * 1e9;
+    return value; // Hz, S/s, samples/s, sps
+  }
+  // fs / sample_rate / sampleRate / sps
+  const fsMatch = header.match(/(?:^|\s)(?:fs|sample[_\s]?rate|sps)\s*[=:]\s*([0-9]+(?:\.[0-9]+)?(?:e[+\-]?[0-9]+)?)\s*([kMG]?(?:Hz|S\/s|sps)?)/i);
+  // fc / center / carrier frequency
+  const fcMatch = header.match(/(?:^|\s)(?:fc|center[_\s]?freq|carrier)\s*[=:]\s*([0-9]+(?:\.[0-9]+)?(?:e[+\-]?[0-9]+)?)\s*([kMG]?Hz)?/i);
+  return {
+    sampleRate: fsMatch ? toHz(parseFloat(fsMatch[1]), fsMatch[2]) : null,
+    centerFreq: fcMatch ? toHz(parseFloat(fcMatch[1]), fcMatch[2]) : null
+  };
+}
 function parseIQData(text, filename) {
+  // Önce yorum satırlarından metadata çek (fs, fc) — generator'ların yazdığı
+  // "# fs = 1.0 MS/s" veya "# fs = 500 kS/s" gibi notları otomatik oku.
+  const meta = extractSignalMetadata(text);
   const lines = text.split(/\r?\n/).filter(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('%'));
   if (lines.length === 0) throw new Error('boş dosya');
   // Başlık satırını atla (sadece text varsa)
@@ -1244,9 +1276,9 @@ function parseIQData(text, filename) {
     type: 'iq',
     name: filename,
     samples,
-    sampleRate: 1,
-    // sample/s — kullanıcı UI'da ayarlar (default 1)
-    centerFreq: 0 // Hz — opsiyonel
+    sampleRate: meta.sampleRate || 1,
+    centerFreq: meta.centerFreq || 0,
+    detectedFromMeta: !!(meta.sampleRate || meta.centerFreq)
   };
 }
 
@@ -1257,6 +1289,8 @@ function parseIQData(text, filename) {
 //   • Çok kolon CSV: her kolon ayrı kanal; başlık varsa kanal ismi olur
 //   • İlk kolon zaman ise atlanır (kontrol: değerler monotonik artıyor)
 function parseWaveformData(text, filename) {
+  // Yorum satırlarından metadata (fs, fc) çek
+  const meta = extractSignalMetadata(text);
   const allLines = text.split(/\r?\n/).filter(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('%'));
   if (allLines.length === 0) throw new Error('boş dosya');
   // Başlık satırı?
@@ -1310,9 +1344,10 @@ function parseWaveformData(text, filename) {
     type: 'waveform',
     name: filename,
     channels,
-    sampleRate: derivedSampleRate,
-    // Hz
-    timeAxisProvided: firstIsTime
+    // Öncelik: meta yorum (en güvenilir) > zaman ekseni türetilmiş > 1 (default)
+    sampleRate: meta.sampleRate || (firstIsTime ? derivedSampleRate : 1),
+    timeAxisProvided: firstIsTime,
+    detectedFromMeta: !!meta.sampleRate
   };
 }
 
@@ -1707,7 +1742,20 @@ function parseCSV(text, name) {
 }
 const getFileLabel = (file, index) => file.label || `D${index + 1}`;
 const getColLabel = (file, col) => file.columnLabels && file.columnLabels[col] || col;
-const safeFilename = s => (s || 'chart').toString().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9çÇğĞıİöÖşŞüÜ_-]+/g, '');
+const safeFilename = s => String(s || 'chart').replace(/[^\w\-.]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'chart';
+
+// Blob'u (text veya binary) tarayıcıdan indirme. Top-level — SampleGallery,
+// ChartCard ve diğer komponentlerin hepsi kullanır.
+const downloadBlob = (blob, filename) => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = url;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
 
 // ─── Themed background plugin ──────────────────────────────────
 function makeBgPlugin(color) {
@@ -2003,16 +2051,6 @@ function ChartCard({
       }
     };
   }, [buildConfig]);
-  const downloadBlob = (blob, filename) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.download = filename;
-    a.href = url;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
   const exportRaster = format => {
     if (!chartInstanceRef.current) return;
     const c = chartInstanceRef.current;
@@ -2641,12 +2679,14 @@ function SmithChartView({
         if (!best || d2 < best.d2) best = {
           d2,
           si,
-          di
+          di,
+          dataPx: dp
         };
       });
     });
-    // 25 px tolerance — boyut bağımsız
-    setHover(best && best.d2 < 25 * 25 ? best : null);
+    // 40 px tolerance — boyut bağımsız, kolay yakalama. Popup data point'e
+    // anchor olur (mouse hareketinden bağımsız → "kaçma" hissi yok).
+    setHover(best && best.d2 < 40 * 40 ? best : null);
   }
   function handleMouseLeave() {
     setHover(null);
@@ -2700,7 +2740,7 @@ function SmithChartView({
       if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return;
       const px = e.clientX - rect.left;
       const py = e.clientY - rect.top;
-      const factor = e.deltaY < 0 ? 1.2 : 1 / 1.2;
+      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
       setView(v => {
         const oldHalf = baseHalf / v.scale;
         const oldVbSize = 2 * oldHalf;
@@ -2709,7 +2749,7 @@ function SmithChartView({
         // İmlecin Γ uzayındaki konumu sabit kalsın
         const gx = px / rect.width * oldVbSize + oldVbX;
         const gy = py / rect.height * oldVbSize + oldVbY;
-        const newScale = Math.max(0.5, Math.min(40, v.scale * factor));
+        const newScale = Math.max(1.0, Math.min(40, v.scale * factor));
         const newHalf = baseHalf / newScale;
         const newVbSize = 2 * newHalf;
         const newVbX = gx - px / rect.width * newVbSize;
@@ -2974,33 +3014,40 @@ function SmithChartView({
     fontFamily: FONT_MONO,
     fontSize: "0.05",
     fill: theme.ink
-  }, s.fileLabel, " \xB7 ", s.param))))), view.scale !== 1 || view.cx !== 0 || view.cy !== 0 ? /*#__PURE__*/React.createElement("button", {
+  }, s.fileLabel, " \xB7 ", s.param))))), (view.scale !== 1 || view.cx !== 0 || view.cy !== 0) && /*#__PURE__*/React.createElement("button", {
     onClick: resetView,
-    className: "absolute top-1 left-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 text-[var(--ink-muted)] hover:text-[var(--accent)] transition-colors border border-[var(--border)] bg-[var(--bg-panel)]/70 backdrop-blur-sm",
+    className: "absolute top-1 left-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 text-[var(--ink-muted)] hover:text-[var(--accent)] transition-colors border border-[var(--border)] bg-[var(--bg-panel)]/70 backdrop-blur-sm z-20",
     style: {
       fontFamily: FONT_MONO
     },
     title: t('reset_zoom')
-  }, "\u27F2 ", view.scale.toFixed(1), "\xD7") : /*#__PURE__*/React.createElement("div", {
-    className: "absolute top-1 left-1 text-[9px] text-[var(--ink-muted)] italic pointer-events-none px-1",
-    style: {
-      fontFamily: FONT_MONO
-    }
-  }, t('smith_zoom_hint')), infoBlock && mousePx && !dragging && /*#__PURE__*/React.createElement("div", {
-    className: "absolute pointer-events-none bg-[var(--bg-panel)]/95 backdrop-blur-sm border border-[var(--border)] rounded-sm px-2.5 py-1.5 shadow-lg text-[10px] leading-relaxed",
-    style: {
-      left: Math.min(mousePx.x + 16, size - 200),
-      top: Math.max(4, Math.min(mousePx.y + 16, size - 130)),
-      zIndex: 10,
-      fontFamily: FONT_MONO,
-      color: 'var(--ink)',
-      minWidth: 170
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "text-[var(--ink-soft)] mb-0.5"
-  }, infoBlock.s.fileLabel, " \xB7 ", infoBlock.s.param), /*#__PURE__*/React.createElement("div", null, "f = ", /*#__PURE__*/React.createElement("span", {
-    className: "text-[var(--accent)]"
-  }, (infoBlock.f / 1e9).toPrecision(5), " GHz")), /*#__PURE__*/React.createElement("div", null, "|\u0393| = ", infoBlock.magG.toFixed(4)), /*#__PURE__*/React.createElement("div", null, "\u2220\u0393 = ", infoBlock.phiG.toFixed(2), "\xB0"), /*#__PURE__*/React.createElement("div", null, "Z = ", infoBlock.Z.re.toFixed(2), " ", infoBlock.Z.im >= 0 ? '+' : '−', " j", Math.abs(infoBlock.Z.im).toFixed(2), " \u03A9"), /*#__PURE__*/React.createElement("div", null, "VSWR = ", infoBlock.vswr), /*#__PURE__*/React.createElement("div", null, "RL = ", infoBlock.rl.toFixed(2), " dB")));
+  }, "\u27F2 ", view.scale.toFixed(1), "\xD7"), infoBlock && hover && hover.dataPx && !dragging && (() => {
+    const popupW = 200;
+    const popupH = 130;
+    const anchorX = hover.dataPx.x;
+    const anchorY = hover.dataPx.y;
+    // Tercih: data point'in 14 px üstünde, ortalanmış
+    let left = anchorX - popupW / 2;
+    let top = anchorY - popupH - 14;
+    if (left < 4) left = 4;
+    if (left + popupW > size - 4) left = size - popupW - 4;
+    // Üstte yer yoksa altta göster
+    if (top < 4) top = anchorY + 14;
+    return /*#__PURE__*/React.createElement("div", {
+      className: "absolute pointer-events-none bg-[var(--bg-panel)]/95 backdrop-blur-sm border border-[var(--border)] rounded-sm px-2.5 py-1.5 shadow-lg text-[10px] leading-relaxed z-10",
+      style: {
+        left,
+        top,
+        width: popupW,
+        fontFamily: FONT_MONO,
+        color: 'var(--ink)'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-[var(--ink-soft)] mb-0.5"
+    }, infoBlock.s.fileLabel, " \xB7 ", infoBlock.s.param), /*#__PURE__*/React.createElement("div", null, "f = ", /*#__PURE__*/React.createElement("span", {
+      className: "text-[var(--accent)]"
+    }, (infoBlock.f / 1e9).toPrecision(5), " GHz")), /*#__PURE__*/React.createElement("div", null, "|\u0393| = ", infoBlock.magG.toFixed(4)), /*#__PURE__*/React.createElement("div", null, "\u2220\u0393 = ", infoBlock.phiG.toFixed(2), "\xB0"), /*#__PURE__*/React.createElement("div", null, "Z = ", infoBlock.Z.re.toFixed(2), " ", infoBlock.Z.im >= 0 ? '+' : '−', " j", Math.abs(infoBlock.Z.im).toFixed(2), " \u03A9"), /*#__PURE__*/React.createElement("div", null, "VSWR = ", infoBlock.vswr), /*#__PURE__*/React.createElement("div", null, "RL = ", infoBlock.rl.toFixed(2), " dB"));
+  })());
 }
 
 // ─── S-Parameter chart card ────────────────────────────────────
@@ -3410,16 +3457,6 @@ function SParamChartCard({
     if (chartInstanceRef.current && chartInstanceRef.current.resetZoom) {
       chartInstanceRef.current.resetZoom();
     }
-  };
-  const downloadBlob = (blob, filename) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.download = filename;
-    a.href = url;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   const exportRaster = format => {
     if (!chartInstanceRef.current) return;
@@ -4517,15 +4554,22 @@ function IQPage({
       x: active.samples[n].i,
       y: active.samples[n].q
     });
-    // FFT
-    const NFFT = Math.min(N, maxSamples);
-    const slice = active.samples.slice(0, NFFT);
+    // FFT: kullanıcı seçimi NFFT (zero-pad gerekirse). Daha büyük NFFT →
+    // daha ince frekans çözünürlüğü, daha küçük → daha az hesap.
+    const NFFT = maxSamples;
+    const usableLen = Math.min(N, NFFT);
+    const slice = active.samples.slice(0, usableLen);
     const windowed = applyWindowComplex(slice, windowType);
+    // Zero-pad to NFFT (fft otomatik 2^k'ya yuvarlar ama biz NFFT'i kesin tutalım)
+    while (windowed.length < NFFT) windowed.push({
+      re: 0,
+      im: 0
+    });
     const X = fftshift(fft(windowed));
     const N2 = X.length;
     const fftData = X.map((c, k) => {
       const freq = (k - N2 / 2) * fs / N2 + fc;
-      const mag = Math.sqrt(c.re * c.re + c.im * c.im) / N2;
+      const mag = Math.sqrt(c.re * c.re + c.im * c.im) / Math.max(usableLen, 1);
       return {
         x: freq,
         y: 20 * Math.log10(mag + 1e-30)
