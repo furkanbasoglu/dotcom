@@ -6100,6 +6100,8 @@ function HexParserPage({
     setTotalParsed(0);
     setParsedCount(0);
     setProgress(0);
+    setFilterType(''); // Filtreyi resetle — yeni parse, eski filtre kalıntısı kalmasın
+    setDisplayLimit(500); // Sayfa boyutunu resetle
     stopRef.current = {
       stopped: false
     };
@@ -6126,22 +6128,19 @@ function HexParserPage({
     if (stopRef.current) stopRef.current.stopped = true;
   }
 
-  // Filtre uygulanmış sonuçlar (display için)
-  const filteredResults = useMemo(() => {
-    if (!filterType) return results;
-    return results.filter(r => r.headerName === filterType);
-  }, [results, filterType]);
+  // Filtre uygulanmış sonuçlar (her render düz hesaplama — useMemo cache sürprizine yer yok)
+  const filteredResults = filterType ? results.filter(r => r.headerName === filterType) : results;
   const displayResults = filteredResults.slice(0, displayLimit);
   const isCapped = filteredResults.length > displayLimit;
 
-  // Mesaj tiplerine göre özet
-  const typeStats = useMemo(() => {
+  // Mesaj tiplerine göre özet (düz hesaplama)
+  const typeStats = (() => {
     const m = new Map();
     for (const r of results) {
       m.set(r.headerName, (m.get(r.headerName) || 0) + 1);
     }
     return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
-  }, [results]);
+  })();
 
   // Sample loader'lar
   function loadMavlinkSample() {
