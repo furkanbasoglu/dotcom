@@ -1,0 +1,203 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+// Turnstile site key build-time'da bu sayfaya inject edilir.
+// (Public bir değer — gizli değildir, secret olan TURNSTILE_SECRET_KEY'dir.)
+const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
+---
+
+<!doctype html>
+<html lang="tr">
+  <head>
+    <BaseHead
+      title="İletişim · Öneriler & Hatalar"
+      description="Furkan Başoğlu — site veya araçlardaki hataları/önerileri ilet."
+    />
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style>
+      .wrap { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem; }
+      h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+      .lead { color: #aaa; margin-bottom: 2rem; }
+      form { display: flex; flex-direction: column; gap: 1rem; }
+      label { font-size: 0.85rem; color: #ccc; display: block; margin-bottom: 0.4rem; }
+      label .req { color: #c14953; }
+      input[type=text], input[type=email], textarea {
+        width: 100%;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        color: #e0e0e0;
+        padding: 0.7rem 0.8rem;
+        font-family: inherit;
+        font-size: 0.95rem;
+        border-radius: 4px;
+        transition: border-color 0.15s;
+      }
+      input[type=text]:focus, input[type=email]:focus, textarea:focus {
+        outline: none;
+        border-color: #7eb8f7;
+      }
+      textarea { resize: vertical; min-height: 140px; }
+      .file-row {
+        display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+        background: #1a1a1a; border: 1px dashed #444; padding: 0.8rem; border-radius: 4px;
+      }
+      .file-row input[type=file] { color: #aaa; font-size: 0.85rem; max-width: 100%; }
+      .file-hint { font-size: 0.8rem; color: #888; }
+      .honeypot {
+        position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden;
+      }
+      button[type=submit] {
+        background: #7eb8f7; color: #0f0f0f; border: none;
+        padding: 0.85rem 1.5rem; font-size: 0.95rem; font-weight: 600;
+        border-radius: 4px; cursor: pointer; transition: background 0.15s;
+        align-self: flex-start;
+      }
+      button[type=submit]:hover:not(:disabled) { background: #acd4ff; }
+      button[type=submit]:disabled { opacity: 0.5; cursor: not-allowed; }
+      .status { padding: 0.9rem 1rem; border-radius: 4px; font-size: 0.9rem; }
+      .status.ok { background: #1a3320; color: #8fda9d; border: 1px solid #2a4a30; }
+      .status.err { background: #3a1a1a; color: #f0a0a0; border: 1px solid #5a2a2a; }
+      .status.info { background: #1a2a3a; color: #a0c0e0; border: 1px solid #2a3a4a; }
+      .char-count { font-size: 0.75rem; color: #777; text-align: right; margin-top: 0.2rem; }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <div class="wrap">
+        <h1>Öneriler & Karşılaşılan Hatalar</h1>
+        <p class="lead">
+          Sitede veya araçlarda (Veri Atlası, vb.) bir sorun mu yaşadın?
+          Bir öneri mi var? Buradan iletebilirsin. Mesajın doğrudan
+          <code>REDACTED</code> adresine gönderilecek.
+        </p>
+
+        <form id="bug-form" novalidate>
+          <div>
+            <label for="name">Adınız <span class="req">*</span></label>
+            <input id="name" name="name" type="text" required maxlength="100" autocomplete="name" />
+          </div>
+
+          <div>
+            <label for="email">E-posta <span class="req">*</span></label>
+            <input id="email" name="email" type="email" required maxlength="200" autocomplete="email" />
+          </div>
+
+          <div>
+            <label for="message">Mesaj / Yaşadığınız sorun <span class="req">*</span></label>
+            <textarea id="message" name="message" required minlength="10" maxlength="5000"></textarea>
+            <div class="char-count"><span id="char-count">0</span> / 5000</div>
+          </div>
+
+          <div>
+            <label for="file">Dosya eki (opsiyonel · max 10 MB)</label>
+            <div class="file-row">
+              <input id="file" name="file" type="file" accept=".png,.jpg,.jpeg,.gif,.pdf,.txt,.csv,.log,.zip,.json" />
+              <span class="file-hint">ekran görüntüsü, log, csv, zip…</span>
+            </div>
+          </div>
+
+          <!-- Honeypot: botlar genelde bütün alanları doldurur. -->
+          <div class="honeypot" aria-hidden="true">
+            <label for="website">Website (boş bırakın)</label>
+            <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <!-- Turnstile CAPTCHA -->
+          {TURNSTILE_SITE_KEY && (
+            <div class="cf-turnstile" data-sitekey={TURNSTILE_SITE_KEY} data-theme="dark"></div>
+          )}
+
+          <button type="submit" id="submit-btn">Gönder</button>
+
+          <div id="status" class="status" style="display:none;"></div>
+        </form>
+      </div>
+    </main>
+    <Footer />
+
+    <script>
+      const form = document.getElementById('bug-form') as HTMLFormElement;
+      const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+      const statusEl = document.getElementById('status') as HTMLDivElement;
+      const messageEl = document.getElementById('message') as HTMLTextAreaElement;
+      const charCountEl = document.getElementById('char-count') as HTMLSpanElement;
+      const fileInput = document.getElementById('file') as HTMLInputElement;
+
+      const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+      function setStatus(msg: string, kind: 'ok' | 'err' | 'info') {
+        statusEl.textContent = msg;
+        statusEl.className = `status ${kind}`;
+        statusEl.style.display = 'block';
+      }
+
+      messageEl.addEventListener('input', () => {
+        charCountEl.textContent = String(messageEl.value.length);
+      });
+
+      fileInput.addEventListener('change', () => {
+        const f = fileInput.files?.[0];
+        if (f && f.size > MAX_FILE_BYTES) {
+          setStatus(`Dosya çok büyük: ${(f.size / 1024 / 1024).toFixed(1)} MB. Maksimum 10 MB.`, 'err');
+          fileInput.value = '';
+        } else {
+          statusEl.style.display = 'none';
+        }
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setStatus('Gönderiliyor…', 'info');
+        submitBtn.disabled = true;
+
+        try {
+          const fd = new FormData(form);
+
+          // Client-side validation
+          const file = fileInput.files?.[0];
+          if (file && file.size > MAX_FILE_BYTES) {
+            setStatus('Dosya 10 MB sınırını aşıyor.', 'err');
+            submitBtn.disabled = false;
+            return;
+          }
+
+          // Turnstile token (varsa)
+          const turnstileResponse = (form.querySelector('[name=cf-turnstile-response]') as HTMLInputElement)?.value;
+          if (turnstileResponse) fd.set('cf-turnstile-response', turnstileResponse);
+
+          const res = await fetch('/api/report', {
+            method: 'POST',
+            body: fd,
+          });
+
+          const data = await res.json().catch(() => ({}));
+
+          if (res.ok) {
+            setStatus('Teşekkürler! Mesajınız iletildi. En kısa sürede dönüş yapacağım.', 'ok');
+            form.reset();
+            charCountEl.textContent = '0';
+            // Turnstile widget reset
+            if (typeof (window as any).turnstile !== 'undefined') {
+              (window as any).turnstile.reset();
+            }
+          } else if (res.status === 429) {
+            setStatus('Çok fazla istek. Lütfen bir saat sonra tekrar deneyin.', 'err');
+          } else if (res.status === 413) {
+            setStatus('Dosya çok büyük (max 10 MB).', 'err');
+          } else if (res.status === 400) {
+            setStatus(data.error || 'Form verisi geçerli değil. Lütfen tüm alanları kontrol edin.', 'err');
+          } else {
+            setStatus(data.error || 'Bir hata oluştu. Lütfen daha sonra tekrar deneyin.', 'err');
+          }
+        } catch (err: any) {
+          setStatus('Ağ hatası: ' + (err?.message || 'bilinmeyen'), 'err');
+        } finally {
+          submitBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
