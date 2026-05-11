@@ -111,6 +111,7 @@ const STRINGS = {
     nav_sparams: 'S-Parametre',
     nav_iq: 'I/Q',
     nav_waveform: 'Dalga Formu',
+    nav_hex: 'Hex Parser',
     nav_bilgi: 'Bilgi',
     // IQ
     iq_upload: '01 · I/Q kaydı yükle',
@@ -175,6 +176,74 @@ const STRINGS = {
     bilgi_title_a: 'Bilgi',
     bilgi_title_b: 'sekmesi',
     bilgi_intro: 'Sitede kullanılan tüm terimlerin (S-parametreleri, I/Q, FFT, Smith chart, pencere fonksiyonları…) detaylı açıklamaları, şekiller ve formüller.',
+    hex_subtitle: '05 · ikili veri · header tabanlı parse',
+    hex_title_a: 'Hex',
+    hex_title_b: 'Parser',
+    hex_intro: 'Binary log dosyalarını (MAVLink, UBX, Modbus, kendi protokolün…) header pattern\'lerine göre mesajlara ayır, TXT veya CSV olarak dışa aktar. Dosya tarayıcıda işlenir, sunucuya hiç yüklenmez — GB ölçeğindeki dosyalar bile.',
+    hex_drop_text: 'binary / hex dosyasını buraya sürükle',
+    hex_formats_full: '.BIN · .HEX · .DAT · .RAW · .LOG · .UBX · .TLOG · .CAP · HER UZANTI · TEK DOSYA',
+    hex_pick_file: 'DOSYA SEÇ',
+    hex_file_info: 'dosya bilgisi',
+    hex_file_size: 'boyut',
+    hex_file_preview: 'ilk 64 bayt',
+    hex_file_remove: 'kaldır',
+    hex_headers_title: 'header tanımları',
+    hex_headers_hint: 'her header bir mesaj tipini tanımlar. pattern hex byte\'lar (0xFE, B5 62, AA-BB), uzunluk sabit veya bir alan içinden okunur.',
+    hex_header_add: 'header ekle',
+    hex_header_name: 'mesaj tipi adı',
+    hex_header_pattern: 'pattern (hex)',
+    hex_header_color: 'renk',
+    hex_header_length_mode: 'uzunluk modu',
+    hex_lm_fixed: 'sabit uzunluk',
+    hex_lm_field: 'length field',
+    hex_lm_next: 'sonraki headera kadar',
+    hex_header_fixed_len: 'sabit byte sayısı',
+    hex_field_offset: 'offset (pattern sonrası)',
+    hex_field_size: 'size (byte)',
+    hex_field_endian: 'endian',
+    hex_field_extra: 'extra byte (sabit)',
+    hex_field_includes: 'değer toplam mesaj?',
+    hex_header_desc: 'açıklama (opsiyonel)',
+    hex_header_remove: 'sil',
+    hex_format_title: 'hex gösterim',
+    hex_format_case: 'büyük/küçük',
+    hex_format_upper: 'BÜYÜK',
+    hex_format_lower: 'küçük',
+    hex_format_sep: 'ayraç',
+    hex_format_sep_space: 'boşluk',
+    hex_format_sep_none: 'yok',
+    hex_format_sep_dash: '-',
+    hex_format_prefix: '0x ön ek',
+    hex_parse_btn: 'PARSE ET',
+    hex_parse_stop: 'DURDUR',
+    hex_parsing: 'parse ediliyor...',
+    hex_parse_done: 'parse tamamlandı',
+    hex_parse_no_headers: 'önce en az 1 header tanımla',
+    hex_parse_no_file: 'önce bir dosya yükle',
+    hex_results_title: 'sonuçlar',
+    hex_filter_type: 'tip filtresi',
+    hex_filter_all: 'tümü',
+    hex_results_offset: 'offset',
+    hex_results_type: 'tip',
+    hex_results_length: 'uzunluk',
+    hex_results_payload: 'payload (hex)',
+    hex_results_empty: 'henüz parse yapılmadı. dosya yükle, header ekle, PARSE ET\'e tıkla.',
+    hex_results_capped: 'görüntüleme {0} kayıt ile sınırlı. CSV/TXT export tüm parse edilen kayıtları içerir.',
+    hex_results_total: 'toplam {0} mesaj parse edildi',
+    hex_export_txt: 'TXT indir',
+    hex_export_csv: 'CSV indir',
+    hex_export_hint: 'TXT: insan okur format. CSV: tablo verisi (offset, tip, length, payload_hex, header_hex).',
+    hex_load_template: 'preset yükle',
+    hex_tmpl_mavlink: 'MAVLink v1',
+    hex_tmpl_ubx: 'UBX (u-blox)',
+    hex_tmpl_modbus: 'Modbus RTU',
+    hex_tmpl_clear: 'tümünü temizle',
+    hex_sample_mavlink_label: 'MAVLink v1 telemetry log',
+    hex_sample_mavlink_desc: 'Drone autopilot (ArduPilot/PX4) telemetri kaydı. Sync byte 0xFE, length field offset 0 (1 byte LE), payload + 2 byte CRC. 120 mesaj — HEARTBEAT, ATTITUDE, GPS_RAW_INT, SYS_STATUS karışık.',
+    hex_sample_ubx_label: 'UBX u-blox GPS log',
+    hex_sample_ubx_desc: 'u-blox GPS alıcısı (M8/F9 serisi) UBX protokolü. Sync 0xB5 0x62, class+id, 2 byte LE length, payload, 2 byte checksum. 80 mesaj — NAV-PVT, NAV-STATUS, NAV-POSLLH.',
+    hex_load_sample: 'YÜKLE',
+    hex_estimated_msgs: 'tahmini mesaj sayısı:',
     sparams_drop: 'Touchstone dosyalarını buraya sürükle',
     sparams_ext_hint: '.s1p · .s2p · .s3p · .s4p · birden fazla seçilebilir',
     sparams_no_files: 'henüz S-parametre dosyası yüklenmedi',
@@ -319,6 +388,7 @@ const STRINGS = {
     nav_sparams: 'S-Parameters',
     nav_iq: 'I/Q',
     nav_waveform: 'Waveform',
+    nav_hex: 'Hex Parser',
     nav_bilgi: 'Info',
     // IQ
     iq_upload: '01 · upload I/Q record',
@@ -383,6 +453,74 @@ const STRINGS = {
     bilgi_title_a: 'Info',
     bilgi_title_b: 'tab',
     bilgi_intro: 'Detailed explanations of every term used in the app (S-parameters, I/Q, FFT, Smith chart, window functions…) with figures and formulas.',
+    hex_subtitle: '05 · binary data · header-based parse',
+    hex_title_a: 'Hex',
+    hex_title_b: 'Parser',
+    hex_intro: 'Split binary log files (MAVLink, UBX, Modbus, your own protocol…) into messages by header patterns, export to TXT or CSV. Files are processed in the browser — never uploaded to a server, even at GB scale.',
+    hex_drop_text: 'drop a binary / hex file here',
+    hex_formats_full: '.BIN · .HEX · .DAT · .RAW · .LOG · .UBX · .TLOG · .CAP · ANY EXTENSION · SINGLE FILE',
+    hex_pick_file: 'PICK FILE',
+    hex_file_info: 'file info',
+    hex_file_size: 'size',
+    hex_file_preview: 'first 64 bytes',
+    hex_file_remove: 'remove',
+    hex_headers_title: 'header definitions',
+    hex_headers_hint: 'each header defines a message type. pattern is hex bytes (0xFE, B5 62, AA-BB); length is fixed or read from a field.',
+    hex_header_add: 'add header',
+    hex_header_name: 'message type name',
+    hex_header_pattern: 'pattern (hex)',
+    hex_header_color: 'color',
+    hex_header_length_mode: 'length mode',
+    hex_lm_fixed: 'fixed length',
+    hex_lm_field: 'length field',
+    hex_lm_next: 'until next header',
+    hex_header_fixed_len: 'fixed byte count',
+    hex_field_offset: 'offset (after pattern)',
+    hex_field_size: 'size (bytes)',
+    hex_field_endian: 'endian',
+    hex_field_extra: 'extra bytes (const)',
+    hex_field_includes: 'value = total msg?',
+    hex_header_desc: 'description (optional)',
+    hex_header_remove: 'remove',
+    hex_format_title: 'hex display',
+    hex_format_case: 'case',
+    hex_format_upper: 'UPPER',
+    hex_format_lower: 'lower',
+    hex_format_sep: 'separator',
+    hex_format_sep_space: 'space',
+    hex_format_sep_none: 'none',
+    hex_format_sep_dash: '-',
+    hex_format_prefix: '0x prefix',
+    hex_parse_btn: 'PARSE',
+    hex_parse_stop: 'STOP',
+    hex_parsing: 'parsing...',
+    hex_parse_done: 'parse complete',
+    hex_parse_no_headers: 'define at least 1 header first',
+    hex_parse_no_file: 'load a file first',
+    hex_results_title: 'results',
+    hex_filter_type: 'type filter',
+    hex_filter_all: 'all',
+    hex_results_offset: 'offset',
+    hex_results_type: 'type',
+    hex_results_length: 'length',
+    hex_results_payload: 'payload (hex)',
+    hex_results_empty: 'no parse yet. load file, add header, click PARSE.',
+    hex_results_capped: 'display capped at {0} entries. CSV/TXT export includes all parsed records.',
+    hex_results_total: '{0} messages parsed',
+    hex_export_txt: 'download TXT',
+    hex_export_csv: 'download CSV',
+    hex_export_hint: 'TXT: human-readable. CSV: tabular (offset, type, length, payload_hex, header_hex).',
+    hex_load_template: 'load preset',
+    hex_tmpl_mavlink: 'MAVLink v1',
+    hex_tmpl_ubx: 'UBX (u-blox)',
+    hex_tmpl_modbus: 'Modbus RTU',
+    hex_tmpl_clear: 'clear all',
+    hex_sample_mavlink_label: 'MAVLink v1 telemetry log',
+    hex_sample_mavlink_desc: 'Drone autopilot (ArduPilot/PX4) telemetry capture. Sync byte 0xFE, length field at offset 0 (1 byte LE), payload + 2-byte CRC. 120 messages — HEARTBEAT, ATTITUDE, GPS_RAW_INT, SYS_STATUS mixed.',
+    hex_sample_ubx_label: 'UBX u-blox GPS log',
+    hex_sample_ubx_desc: 'u-blox GPS receiver (M8/F9 family) UBX protocol. Sync 0xB5 0x62, class+id, 2-byte LE length, payload, 2-byte checksum. 80 messages — NAV-PVT, NAV-STATUS, NAV-POSLLH.',
+    hex_load_sample: 'LOAD',
+    hex_estimated_msgs: 'estimated messages:',
     sparams_drop: 'drop Touchstone files here',
     sparams_ext_hint: '.s1p · .s2p · .s3p · .s4p · multiple allowed',
     sparams_no_files: 'no S-parameter files loaded yet',
@@ -3723,8 +3861,8 @@ function SParamChartCard({
 
 // ─── Hash routing ──────────────────────────────────────────────
 // file:// üzerinde de çalışır. Hash'te '#/csv' veya '#/sparams' tutulur.
-const ROUTES = ['csv', 'sparams', 'iq', 'waveform', 'bilgi'];
-const ENABLED_ROUTES = new Set(['csv', 'sparams', 'iq', 'waveform', 'bilgi']); // tüm rotalar
+const ROUTES = ['csv', 'sparams', 'iq', 'waveform', 'hex', 'bilgi'];
+const ENABLED_ROUTES = new Set(['csv', 'sparams', 'iq', 'waveform', 'hex', 'bilgi']); // tüm rotalar
 function readHashRoute() {
   const h = (typeof window !== 'undefined' ? window.location.hash : '').replace(/^#\/?/, '');
   if (ROUTES.includes(h)) return h;
@@ -5369,6 +5507,1232 @@ function WaveformPage({
 }
 
 // ─── SampleGallery: indir + tek tıkla yükle ────────────────────
+// ─── Hex / Binary parsing yardımcıları ───────────────────────
+// "0xFE B5-62" gibi insan-yazımı stringi Uint8Array'e çevir.
+// Geçersiz karakter varsa null döner.
+function parseHexString(str) {
+  if (!str) return null;
+  const cleaned = String(str).replace(/0x/gi, '').replace(/[\s,\-_:.;|]/g, '');
+  if (cleaned.length === 0 || cleaned.length % 2 !== 0) return null;
+  if (!/^[0-9a-fA-F]+$/.test(cleaned)) return null;
+  const out = new Uint8Array(cleaned.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    out[i] = parseInt(cleaned.substr(i * 2, 2), 16);
+  }
+  return out;
+}
+
+// Uint8Array → "FE B5 62" gibi formatla.
+// opts: { uppercase, separator: 'space'|'none'|'dash', prefix: bool }
+function formatHexBytes(bytes, opts) {
+  if (!bytes || bytes.length === 0) return '';
+  const sep = opts?.separator === 'none' ? '' : opts?.separator === 'dash' ? '-' : ' ';
+  const prefix = opts?.prefix ? '0x' : '';
+  const upper = opts?.uppercase !== false; // default büyük
+  const parts = [];
+  for (let i = 0; i < bytes.length; i++) {
+    let h = bytes[i].toString(16).padStart(2, '0');
+    if (upper) h = h.toUpperCase();
+    parts.push(prefix + h);
+  }
+  return parts.join(sep);
+}
+
+// İki Uint8Array karşılaştırması — buf'un pos pozisyonundan itibaren pattern'le eşleşiyor mu?
+function bytesMatch(buf, pos, pattern) {
+  if (pos + pattern.length > buf.length) return false;
+  for (let i = 0; i < pattern.length; i++) {
+    if (buf[pos + i] !== pattern[i]) return false;
+  }
+  return true;
+}
+
+// length field okuma yardımcısı
+function readLengthField(buf, pos, size, endian) {
+  if (pos + size > buf.length) return null;
+  let v = 0;
+  if (endian === 'LE') {
+    for (let i = size - 1; i >= 0; i--) v = v << 8 | buf[pos + i];
+  } else {
+    for (let i = 0; i < size; i++) v = v << 8 | buf[pos + i];
+  }
+  return v >>> 0; // unsigned
+}
+
+// Header preset şablonları — kullanıcı tek tıkla ekler
+const HEX_PRESETS = {
+  mavlink: [{
+    name: 'MAVLink v1',
+    patternHex: 'FE',
+    color: '#d77a4b',
+    lengthMode: 'field',
+    fixedLen: 0,
+    fieldOffset: 0,
+    fieldSize: 1,
+    fieldEndian: 'LE',
+    fieldExtra: 7,
+    // length(1) + seq(1) + sysid(1) + compid(1) + msgid(1) + crc(2) = 7
+    fieldIncludesAll: false,
+    description: 'sync 0xFE, len at +0, +7 byte sabit (seq+ids+crc)'
+  }],
+  ubx: [{
+    name: 'UBX',
+    patternHex: 'B5 62',
+    color: '#7b6cd9',
+    lengthMode: 'field',
+    fixedLen: 0,
+    fieldOffset: 2,
+    fieldSize: 2,
+    fieldEndian: 'LE',
+    fieldExtra: 6,
+    // class(1) + id(1) + length(2) + ck_a(1) + ck_b(1) = 6
+    fieldIncludesAll: false,
+    description: 'sync 0xB5 0x62, len at +2 (2 byte LE), +6 byte sabit'
+  }],
+  modbus: [{
+    name: 'Modbus 0x03 read',
+    patternHex: '01 03',
+    color: '#4ba87a',
+    lengthMode: 'fixed',
+    fixedLen: 6,
+    // 0x03 = read holding registers: slave+func + byte_count + 2 data + 2 CRC ≈ 8 toplam, 2 pattern + 6 = 8
+    fieldOffset: 0,
+    fieldSize: 1,
+    fieldEndian: 'LE',
+    fieldExtra: 0,
+    fieldIncludesAll: false,
+    description: 'Modbus RTU slave=0x01 func=0x03 (read holding), 6 byte sabit data'
+  }]
+};
+
+// CRC16 (MAVLink x.25) — sample dosya generator için
+function mavlinkCrc(bytes, extra) {
+  let crc = 0xFFFF;
+  const update = b => {
+    let tmp = b ^ crc & 0xff;
+    tmp = (tmp ^ tmp << 4) & 0xff;
+    crc = (crc >> 8 ^ tmp << 8 ^ tmp << 3 ^ tmp >> 4) & 0xffff;
+  };
+  for (const b of bytes) update(b);
+  if (extra != null) update(extra);
+  return crc;
+}
+
+// MAVLink v1 sample log generator — 120 mesaj karışık
+function generateMavlinkSample() {
+  // CRC_EXTRA tablosu (MAVLink v1, common dialect, msg_id → crc_extra)
+  const CRC_EXTRA = {
+    0: 50,
+    1: 124,
+    24: 24,
+    30: 39
+  }; // HEARTBEAT, SYS_STATUS, GPS_RAW_INT, ATTITUDE
+  const msgs = [];
+  let seq = 0;
+  const sysid = 1,
+    compid = 1;
+  function encodeMsg(msgId, payloadLen, payloadGen) {
+    const payload = new Uint8Array(payloadLen);
+    payloadGen(payload, new DataView(payload.buffer));
+    const frame = new Uint8Array(6 + payloadLen + 2); // sync(1) + len(1) + seq(1) + sysid(1) + compid(1) + msgid(1) + payload(N) + crc(2)
+    frame[0] = 0xFE;
+    frame[1] = payloadLen;
+    frame[2] = seq++ & 0xFF;
+    frame[3] = sysid;
+    frame[4] = compid;
+    frame[5] = msgId;
+    frame.set(payload, 6);
+    const crc = mavlinkCrc(frame.subarray(1, 6 + payloadLen), CRC_EXTRA[msgId] ?? 0);
+    frame[6 + payloadLen] = crc & 0xFF;
+    frame[6 + payloadLen + 1] = crc >> 8 & 0xFF;
+    msgs.push(frame);
+  }
+
+  // 30 HEARTBEAT (msg_id=0, payload 9 byte: type, autopilot, base_mode, custom_mode(4), system_status, mavlink_version)
+  for (let i = 0; i < 30; i++) {
+    encodeMsg(0, 9, (p, dv) => {
+      dv.setUint32(0, 0x10, true); // custom_mode
+      p[4] = 2; // type = MAV_TYPE_QUADROTOR
+      p[5] = 3; // autopilot = ArduPilot
+      p[6] = 81; // base_mode (armed+guided örnek)
+      p[7] = 4; // system_status = ACTIVE
+      p[8] = 3; // mavlink_version
+    });
+  }
+  // 30 SYS_STATUS (msg_id=1, payload 31 byte)
+  for (let i = 0; i < 30; i++) {
+    encodeMsg(1, 31, (p, dv) => {
+      dv.setUint32(0, 0x3FFF, true); // sensors_present
+      dv.setUint32(4, 0x3FFF, true);
+      dv.setUint32(8, 0x3FFF, true);
+      dv.setUint16(12, 250 + i % 10 * 5, true); // load
+      dv.setUint16(14, 12500 - i * 10, true); // voltage mV
+      dv.setInt16(16, 1500, true); // current cA
+      p[18] = 80 - i % 20; // battery_remaining
+    });
+  }
+  // 30 ATTITUDE (msg_id=30, payload 28 byte: time_boot_ms u32, roll f32, pitch f32, yaw f32, rollspeed f32, pitchspeed f32, yawspeed f32)
+  for (let i = 0; i < 30; i++) {
+    encodeMsg(30, 28, (p, dv) => {
+      dv.setUint32(0, i * 100, true);
+      dv.setFloat32(4, 0.1 * Math.sin(i * 0.1), true);
+      dv.setFloat32(8, 0.05 * Math.cos(i * 0.1), true);
+      dv.setFloat32(12, i * 0.01, true);
+      dv.setFloat32(16, 0.01, true);
+      dv.setFloat32(20, 0.005, true);
+      dv.setFloat32(24, 0.02, true);
+    });
+  }
+  // 30 GPS_RAW_INT (msg_id=24, payload 30 byte)
+  for (let i = 0; i < 30; i++) {
+    encodeMsg(24, 30, (p, dv) => {
+      dv.setBigUint64(0, BigInt(1700000000000 + i * 100) * 1000n, true); // time_usec
+      p[8] = 3; // fix_type
+      dv.setInt32(9, 411000000 + i * 1000, true); // lat (1e7 deg)
+      dv.setInt32(13, 290000000 + i * 1000, true); // lon
+      dv.setInt32(17, 50000 + i * 10, true); // alt mm
+      dv.setUint16(21, 100, true); // eph cm
+      dv.setUint16(23, 100, true); // epv cm
+      dv.setUint16(25, 500 + i, true); // vel cm/s
+      dv.setUint16(27, 18000, true); // cog cdeg
+      p[29] = 12; // satellites_visible
+    });
+  }
+
+  // Karıştır (gerçekçi log akışı)
+  for (let i = msgs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [msgs[i], msgs[j]] = [msgs[j], msgs[i]];
+  }
+
+  // Tek bir array'e birleştir
+  let total = 0;
+  msgs.forEach(m => {
+    total += m.length;
+  });
+  const out = new Uint8Array(total);
+  let p = 0;
+  msgs.forEach(m => {
+    out.set(m, p);
+    p += m.length;
+  });
+  return out;
+}
+
+// UBX (u-blox) sample log generator — 80 mesaj
+function generateUbxSample() {
+  function ubxChecksum(bytes) {
+    let a = 0,
+      b = 0;
+    for (const x of bytes) {
+      a = a + x & 0xFF;
+      b = b + a & 0xFF;
+    }
+    return [a, b];
+  }
+  const msgs = [];
+  function encode(cls, id, payload) {
+    const frame = new Uint8Array(8 + payload.length);
+    frame[0] = 0xB5;
+    frame[1] = 0x62;
+    frame[2] = cls;
+    frame[3] = id;
+    frame[4] = payload.length & 0xFF;
+    frame[5] = payload.length >> 8 & 0xFF;
+    frame.set(payload, 6);
+    const [a, b] = ubxChecksum(frame.subarray(2, 6 + payload.length));
+    frame[6 + payload.length] = a;
+    frame[6 + payload.length + 1] = b;
+    msgs.push(frame);
+  }
+
+  // 40 NAV-PVT (cls=0x01, id=0x07, payload 92 byte)
+  for (let i = 0; i < 40; i++) {
+    const p = new Uint8Array(92);
+    const dv = new DataView(p.buffer);
+    dv.setUint32(0, 100000 + i * 1000, true); // iTOW
+    dv.setUint16(4, 2024, true); // year
+    p[6] = 5;
+    p[7] = 11;
+    p[8] = 12 + i % 12;
+    p[9] = 0;
+    p[10] = 0; // month, day, h, m, s
+    p[11] = 0x07; // valid
+    p[20] = 3; // fixType
+    dv.setInt32(24, 290000000 + i * 500, true); // lon
+    dv.setInt32(28, 411000000 + i * 500, true); // lat
+    dv.setInt32(32, 50000 + i * 10, true); // height mm
+    dv.setUint8(23, 12); // numSV
+    encode(0x01, 0x07, p);
+  }
+  // 20 NAV-STATUS (cls=0x01, id=0x03, payload 16 byte)
+  for (let i = 0; i < 20; i++) {
+    const p = new Uint8Array(16);
+    const dv = new DataView(p.buffer);
+    dv.setUint32(0, 100000 + i * 5000, true);
+    p[4] = 3; // gpsFix
+    p[5] = 0x0D; // flags
+    encode(0x01, 0x03, p);
+  }
+  // 20 NAV-POSLLH (cls=0x01, id=0x02, payload 28 byte)
+  for (let i = 0; i < 20; i++) {
+    const p = new Uint8Array(28);
+    const dv = new DataView(p.buffer);
+    dv.setUint32(0, 100000 + i * 5000, true);
+    dv.setInt32(4, 290000000 + i * 1000, true);
+    dv.setInt32(8, 411000000 + i * 1000, true);
+    dv.setInt32(12, 50000, true);
+    dv.setInt32(16, 60000, true);
+    dv.setUint32(20, 5000, true);
+    dv.setUint32(24, 8000, true);
+    encode(0x01, 0x02, p);
+  }
+  for (let i = msgs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [msgs[i], msgs[j]] = [msgs[j], msgs[i]];
+  }
+  let total = 0;
+  msgs.forEach(m => {
+    total += m.length;
+  });
+  const out = new Uint8Array(total);
+  let p = 0;
+  msgs.forEach(m => {
+    out.set(m, p);
+    p += m.length;
+  });
+  return out;
+}
+
+// Async stream parser — File'ı chunk-by-chunk okur, header'ları arar
+// onProgress: (parsedCount, totalBytes, processedBytes) => void
+// onResults: array bireysel mesaj objelerini emitler — { offset, headerId, name, color, length, headerBytes, payloadBytes }
+// stopRef: { stopped: bool } — kullanıcı durdurabilsin
+async function parseHexFile(file, headers, opts, onProgress, stopRef) {
+  if (!file || !headers || headers.length === 0) return [];
+
+  // Pattern'leri ön-derle
+  const patterns = headers.map(h => ({
+    ...h,
+    _bytes: parseHexString(h.patternHex)
+  })).filter(h => h._bytes && h._bytes.length > 0);
+  if (patterns.length === 0) return [];
+  const MAX_RESULTS = 100000; // tablo cap, ama sayım devam eder
+  const MAX_PAYLOAD_STORE = 256; // her mesajın ilk 256 byte'ını sakla (tablo için yeterli)
+  const results = [];
+  let totalCount = 0;
+  let absoluteOffset = 0;
+  const reader = file.stream().getReader();
+  // overlap = en uzun pattern + length-field header'ı için olası max mesaj uzunluğu
+  // gerçek max mesaj uzunluğu pratik olarak 64KB (length field 2 byte LE max + extra)
+  // overlap'i 128KB tutmak ile büyük mesajlar bile yakalanır
+  const OVERLAP = 131072;
+  let buf = new Uint8Array(0);
+
+  // Yardımcı: scanChunk — buf içinde header'ları ara, sonuçları ekle, consume edilen byte sayısını döndür
+  function scanChunk(buf, isLast) {
+    // last olmayan chunk'larda son OVERLAP byte'ı dokunmadan bırak (sonraki chunk ile birleşince mesajın tamamı olur)
+    const scanLimit = isLast ? buf.length : Math.max(0, buf.length - OVERLAP);
+    let pos = 0;
+    while (pos < scanLimit) {
+      if (stopRef && stopRef.stopped) return pos;
+      let matched = null;
+      for (const h of patterns) {
+        if (bytesMatch(buf, pos, h._bytes)) {
+          matched = h;
+          break;
+        }
+      }
+      if (!matched) {
+        pos++;
+        continue;
+      }
+
+      // Mesaj uzunluğunu hesapla
+      let msgLen = 0;
+      const patLen = matched._bytes.length;
+      if (matched.lengthMode === 'fixed') {
+        msgLen = patLen + (Number(matched.fixedLen) || 0);
+      } else if (matched.lengthMode === 'field') {
+        const fieldPos = pos + patLen + (Number(matched.fieldOffset) || 0);
+        const size = Math.max(1, Math.min(4, Number(matched.fieldSize) || 1));
+        const endian = matched.fieldEndian === 'BE' ? 'BE' : 'LE';
+        const v = readLengthField(buf, fieldPos, size, endian);
+        if (v == null) {
+          // Yeterli byte yok — chunk sonuna kadar at, bir sonraki tur için bırak
+          if (!isLast) return pos;
+          // last chunk, parse edilemez — atla
+          pos++;
+          continue;
+        }
+        const extra = Number(matched.fieldExtra) || 0;
+        if (matched.fieldIncludesAll) {
+          msgLen = v;
+        } else {
+          msgLen = patLen + extra + v;
+        }
+      } else if (matched.lengthMode === 'next') {
+        // Sonraki herhangi bir header pattern'ine kadar
+        let nextPos = -1;
+        for (let s = pos + patLen; s < buf.length - 1; s++) {
+          for (const h of patterns) {
+            if (bytesMatch(buf, s, h._bytes)) {
+              nextPos = s;
+              break;
+            }
+          }
+          if (nextPos !== -1) break;
+        }
+        if (nextPos === -1) {
+          if (!isLast) return pos; // sonraki chunk'ı bekle
+          msgLen = buf.length - pos;
+        } else {
+          msgLen = nextPos - pos;
+        }
+      }
+      if (msgLen < patLen) msgLen = patLen; // güvenlik
+      if (pos + msgLen > buf.length) {
+        if (!isLast) return pos; // sonraki chunk'ta yine dene
+        msgLen = buf.length - pos;
+      }
+
+      // Mesajı yakaladık
+      totalCount++;
+      if (results.length < MAX_RESULTS) {
+        const storeLen = Math.min(msgLen - patLen, MAX_PAYLOAD_STORE);
+        results.push({
+          offset: absoluteOffset + pos,
+          headerName: matched.name,
+          color: matched.color,
+          length: msgLen,
+          headerBytes: buf.slice(pos, pos + patLen),
+          payloadBytes: buf.slice(pos + patLen, pos + patLen + storeLen),
+          payloadTruncated: storeLen < msgLen - patLen
+        });
+      }
+      pos += msgLen;
+    }
+    return pos;
+  }
+  let isDone = false;
+  while (!isDone) {
+    if (stopRef && stopRef.stopped) break;
+    const {
+      done,
+      value
+    } = await reader.read();
+    isDone = done;
+    if (value) {
+      // buf + value
+      const merged = new Uint8Array(buf.length + value.length);
+      merged.set(buf, 0);
+      merged.set(value, buf.length);
+      buf = merged;
+    }
+    const consumed = scanChunk(buf, isDone);
+    absoluteOffset += consumed;
+    buf = buf.slice(consumed);
+    if (onProgress) {
+      onProgress(totalCount, file.size, absoluteOffset);
+    }
+    // UI'a nefes
+    await new Promise(r => setTimeout(r, 0));
+  }
+  return {
+    results,
+    totalCount
+  };
+}
+
+// CSV / TXT export — sonuçları Blob olarak hazırlar
+function exportResultsCSV(results, hexOpts) {
+  const lines = ['offset,type,length,header_hex,payload_hex'];
+  for (const r of results) {
+    const h = formatHexBytes(r.headerBytes, {
+      ...hexOpts,
+      separator: 'none'
+    });
+    const p = formatHexBytes(r.payloadBytes, {
+      ...hexOpts,
+      separator: 'none'
+    });
+    const name = `"${(r.headerName || '').replace(/"/g, '""')}"`;
+    lines.push(`${r.offset},${name},${r.length},${h},${p}`);
+  }
+  return new Blob([lines.join('\n')], {
+    type: 'text/csv;charset=utf-8'
+  });
+}
+function exportResultsTXT(results, hexOpts) {
+  const lines = [];
+  for (const r of results) {
+    const h = formatHexBytes(r.headerBytes, hexOpts);
+    const p = formatHexBytes(r.payloadBytes, hexOpts);
+    lines.push(`@ ${r.offset.toString(16).toUpperCase().padStart(8, '0')}  [${r.headerName}]  len=${r.length}`);
+    lines.push(`  HEADER: ${h}`);
+    lines.push(`  PAYLOAD: ${p}${r.payloadTruncated ? ' ...' : ''}`);
+    lines.push('');
+  }
+  return new Blob([lines.join('\n')], {
+    type: 'text/plain;charset=utf-8'
+  });
+}
+
+// Boyut formatlayıcı
+function formatBytes(n) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
+
+// ─── HexParserPage ─────────────────────────────────────────────
+function HexParserPage({
+  t,
+  lang
+}) {
+  const [file, setFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(''); // ilk 64 byte hex
+  const [headers, setHeaders] = useState([]); // header tanımları
+  const [results, setResults] = useState([]); // parse sonucu (cap edilmiş)
+  const [totalParsed, setTotalParsed] = useState(0);
+  const [parsing, setParsing] = useState(false);
+  const [progress, setProgress] = useState(0); // 0..1
+  const [parsedCount, setParsedCount] = useState(0);
+  const [filterType, setFilterType] = useState(''); // '' = tümü
+  const [displayLimit, setDisplayLimit] = useState(500); // sayfa boyutu
+  const [hexOpts, setHexOpts] = useState({
+    uppercase: true,
+    separator: 'space',
+    prefix: false
+  });
+  const [error, setError] = useState('');
+  const [dragging, setDragging] = useState(false);
+  const stopRef = useRef({
+    stopped: false
+  });
+  const fileInputRef = useRef(null);
+  const MAX_RESULTS_DISPLAY = 5000;
+
+  // Dosya yükleme handler
+  async function handleFileLoad(f) {
+    if (!f) return;
+    setFile(f);
+    setResults([]);
+    setTotalParsed(0);
+    setError('');
+    setProgress(0);
+    setParsedCount(0);
+    // İlk 64 byte preview
+    try {
+      const slice = f.slice(0, 64);
+      const buf = await slice.arrayBuffer();
+      setFilePreview(formatHexBytes(new Uint8Array(buf), hexOpts));
+    } catch (e) {
+      setFilePreview('');
+    }
+  }
+  function onDrop(e) {
+    e.preventDefault();
+    setDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleFileLoad(f);
+  }
+  function onDragOver(e) {
+    e.preventDefault();
+    setDragging(true);
+  }
+  function onDragLeave() {
+    setDragging(false);
+  }
+  function addHeader(preset) {
+    const base = {
+      id: 'h' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      name: '',
+      patternHex: '',
+      color: ['#d77a4b', '#7b6cd9', '#4ba87a', '#c7634b', '#8a7a4c'][headers.length % 5],
+      lengthMode: 'fixed',
+      fixedLen: 16,
+      fieldOffset: 0,
+      fieldSize: 1,
+      fieldEndian: 'LE',
+      fieldExtra: 0,
+      fieldIncludesAll: false,
+      description: ''
+    };
+    setHeaders([...headers, {
+      ...base,
+      ...(preset || {})
+    }]);
+  }
+  function loadPreset(key) {
+    const preset = HEX_PRESETS[key];
+    if (!preset) return;
+    const newOnes = preset.map((p, i) => ({
+      id: 'h' + Date.now() + '_' + i,
+      ...p
+    }));
+    setHeaders([...headers, ...newOnes]);
+  }
+  function clearHeaders() {
+    setHeaders([]);
+  }
+  function updateHeader(id, patch) {
+    setHeaders(headers.map(h => h.id === id ? {
+      ...h,
+      ...patch
+    } : h));
+  }
+  function removeHeader(id) {
+    setHeaders(headers.filter(h => h.id !== id));
+  }
+  async function doParse() {
+    if (!file) {
+      setError(t('hex_parse_no_file'));
+      return;
+    }
+    if (headers.length === 0) {
+      setError(t('hex_parse_no_headers'));
+      return;
+    }
+    setError('');
+    setResults([]);
+    setTotalParsed(0);
+    setParsedCount(0);
+    setProgress(0);
+    stopRef.current = {
+      stopped: false
+    };
+    setParsing(true);
+    try {
+      const {
+        results: r,
+        totalCount
+      } = await parseHexFile(file, headers, hexOpts, (count, totalBytes, processed) => {
+        setParsedCount(count);
+        setProgress(totalBytes > 0 ? processed / totalBytes : 0);
+      }, stopRef.current);
+      setResults(r);
+      setTotalParsed(totalCount);
+      setProgress(1);
+    } catch (e) {
+      console.error('Hex parse error:', e);
+      setError(e.message || 'parse error');
+    } finally {
+      setParsing(false);
+    }
+  }
+  function stopParse() {
+    if (stopRef.current) stopRef.current.stopped = true;
+  }
+
+  // Filtre uygulanmış sonuçlar (display için)
+  const filteredResults = useMemo(() => {
+    if (!filterType) return results;
+    return results.filter(r => r.headerName === filterType);
+  }, [results, filterType]);
+  const displayResults = filteredResults.slice(0, displayLimit);
+  const isCapped = filteredResults.length > displayLimit;
+
+  // Mesaj tiplerine göre özet
+  const typeStats = useMemo(() => {
+    const m = new Map();
+    for (const r of results) {
+      m.set(r.headerName, (m.get(r.headerName) || 0) + 1);
+    }
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
+  }, [results]);
+
+  // Sample loader'lar
+  function loadMavlinkSample() {
+    const bytes = generateMavlinkSample();
+    const blob = new Blob([bytes], {
+      type: 'application/octet-stream'
+    });
+    const f = new File([blob], 'mavlink_sample.tlog', {
+      type: 'application/octet-stream'
+    });
+    handleFileLoad(f);
+    setHeaders([]);
+    setTimeout(() => loadPreset('mavlink'), 50);
+  }
+  function loadUbxSample() {
+    const bytes = generateUbxSample();
+    const blob = new Blob([bytes], {
+      type: 'application/octet-stream'
+    });
+    const f = new File([blob], 'ublox_gps.ubx', {
+      type: 'application/octet-stream'
+    });
+    handleFileLoad(f);
+    setHeaders([]);
+    setTimeout(() => loadPreset('ubx'), 50);
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    className: "space-y-6",
+    style: {
+      fontFamily: FONT_SANS
+    }
+  }, /*#__PURE__*/React.createElement("section", {
+    onDragOver: onDragOver,
+    onDragLeave: onDragLeave,
+    onDrop: onDrop,
+    className: `border-2 border-dashed transition-all ${dragging ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--border-hard)] bg-[var(--bg-panel)]'}`
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-8 py-12 text-center"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] uppercase tracking-[0.3em] text-[var(--ink-muted)] mb-4",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, "01 \xB7 ", t('hex_subtitle').split('·')[1]?.trim() || 'binary'), /*#__PURE__*/React.createElement("p", {
+    className: "mb-7 italic leading-tight text-[var(--ink)]",
+    style: {
+      fontFamily: FONT_SERIF,
+      fontSize: 'clamp(1.5rem, 3.5vw, 2rem)'
+    }
+  }, t('hex_drop_text')), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-center gap-3 flex-wrap"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => fileInputRef.current?.click(),
+    className: "px-6 py-3 bg-[var(--ink)] text-[var(--bg)] uppercase tracking-[0.2em] text-xs hover:bg-[var(--accent)] transition-colors",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('hex_pick_file')), /*#__PURE__*/React.createElement("input", {
+    ref: fileInputRef,
+    type: "file",
+    onChange: e => {
+      const f = e.target.files?.[0];
+      if (f) handleFileLoad(f);
+      e.target.value = '';
+    },
+    className: "hidden"
+  })), /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] uppercase tracking-[0.2em] text-[var(--ink-muted)] mt-6",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('hex_formats_full')))), file && /*#__PURE__*/React.createElement("section", {
+    className: "border border-[var(--border)] bg-[var(--bg-panel)] p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-baseline justify-between mb-3 pb-2 border-b border-[var(--border-soft)]"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] uppercase tracking-[0.25em] text-[var(--ink-soft)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('hex_file_info')), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setFile(null);
+      setFilePreview('');
+      setResults([]);
+      setTotalParsed(0);
+    },
+    className: "text-[10px] uppercase tracking-[0.2em] text-[var(--ink-muted)] hover:text-[var(--danger)] transition-colors",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('hex_file_remove'))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4 text-[12px]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "space-y-1"
+  }, /*#__PURE__*/React.createElement("div", null, file.name), /*#__PURE__*/React.createElement("div", {
+    className: "text-[var(--ink-muted)]"
+  }, t('hex_file_size'), ": ", /*#__PURE__*/React.createElement("span", {
+    className: "text-[var(--accent)]"
+  }, formatBytes(file.size)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] uppercase tracking-wider text-[var(--ink-muted)] mb-1"
+  }, t('hex_file_preview')), /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] text-[var(--ink-soft)] bg-[var(--bg)] border border-[var(--border-soft)] p-2 break-all leading-relaxed"
+  }, filePreview || '—')))), /*#__PURE__*/React.createElement("section", {
+    className: "border border-[var(--border)] bg-[var(--bg-panel)] p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-baseline justify-between mb-2 pb-2 border-b border-[var(--border-soft)] flex-wrap gap-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] uppercase tracking-[0.25em] text-[var(--ink-soft)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('hex_headers_title'), " (", headers.length, ")"), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 flex-wrap",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] uppercase tracking-wider text-[var(--ink-muted)]"
+  }, t('hex_load_template'), ":"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => loadPreset('mavlink'),
+    className: "text-[10px] uppercase tracking-wider px-2 py-1 border border-[var(--border)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+  }, t('hex_tmpl_mavlink')), /*#__PURE__*/React.createElement("button", {
+    onClick: () => loadPreset('ubx'),
+    className: "text-[10px] uppercase tracking-wider px-2 py-1 border border-[var(--border)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+  }, t('hex_tmpl_ubx')), /*#__PURE__*/React.createElement("button", {
+    onClick: () => loadPreset('modbus'),
+    className: "text-[10px] uppercase tracking-wider px-2 py-1 border border-[var(--border)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+  }, t('hex_tmpl_modbus')), /*#__PURE__*/React.createElement("span", {
+    className: "text-[var(--border-hard)]"
+  }, "\xB7"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => addHeader(),
+    className: "text-[10px] uppercase tracking-wider px-2 py-1 bg-[var(--accent)] text-[var(--bg)] hover:bg-[var(--ink)] transition-colors"
+  }, "+ ", t('hex_header_add')), headers.length > 0 && /*#__PURE__*/React.createElement("button", {
+    onClick: clearHeaders,
+    className: "text-[10px] uppercase tracking-wider px-2 py-1 text-[var(--ink-muted)] hover:text-[var(--danger)] transition-colors"
+  }, t('hex_tmpl_clear')))), /*#__PURE__*/React.createElement("p", {
+    className: "text-[11px] italic text-[var(--ink-muted)] mb-3 leading-snug",
+    style: {
+      fontFamily: FONT_SERIF
+    }
+  }, t('hex_headers_hint')), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-2"
+  }, headers.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "text-[12px] italic text-[var(--placeholder)] py-4 text-center",
+    style: {
+      fontFamily: FONT_SERIF
+    }
+  }, "\u2014"), headers.map(h => /*#__PURE__*/React.createElement(HeaderEditor, {
+    key: h.id,
+    header: h,
+    onUpdate: p => updateHeader(h.id, p),
+    onRemove: () => removeHeader(h.id),
+    t: t
+  })))), /*#__PURE__*/React.createElement("section", {
+    className: "border border-[var(--border)] bg-[var(--bg-panel)] p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] uppercase tracking-[0.25em] text-[var(--ink-soft)] mb-3",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('hex_format_title')), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-6 flex-wrap text-[11px]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[var(--ink-muted)] uppercase tracking-wider"
+  }, t('hex_format_case'), ":"), [['upper', t('hex_format_upper')], ['lower', t('hex_format_lower')]].map(([k, lbl]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    onClick: () => setHexOpts({
+      ...hexOpts,
+      uppercase: k === 'upper'
+    }),
+    className: `px-2 py-1 transition-colors ${(hexOpts.uppercase ? 'upper' : 'lower') === k ? 'bg-[var(--accent)] text-[var(--bg)]' : 'text-[var(--ink-soft)] hover:text-[var(--accent)]'}`
+  }, lbl))), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[var(--ink-muted)] uppercase tracking-wider"
+  }, t('hex_format_sep'), ":"), [['space', t('hex_format_sep_space')], ['none', t('hex_format_sep_none')], ['dash', t('hex_format_sep_dash')]].map(([k, lbl]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    onClick: () => setHexOpts({
+      ...hexOpts,
+      separator: k
+    }),
+    className: `px-2 py-1 transition-colors ${hexOpts.separator === k ? 'bg-[var(--accent)] text-[var(--bg)]' : 'text-[var(--ink-soft)] hover:text-[var(--accent)]'}`
+  }, lbl))), /*#__PURE__*/React.createElement("label", {
+    className: "flex items-center gap-1.5 cursor-pointer"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: hexOpts.prefix,
+    onChange: e => setHexOpts({
+      ...hexOpts,
+      prefix: e.target.checked
+    }),
+    className: "accent-[var(--accent)]"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "text-[var(--ink-soft)] uppercase tracking-wider"
+  }, t('hex_format_prefix'))))), /*#__PURE__*/React.createElement("section", {
+    className: "border border-[var(--border)] bg-[var(--bg-panel)] p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-4 flex-wrap"
+  }, !parsing ? /*#__PURE__*/React.createElement("button", {
+    onClick: doParse,
+    disabled: !file || headers.length === 0,
+    className: "px-6 py-3 bg-[var(--accent)] text-[var(--bg)] uppercase tracking-[0.2em] text-xs hover:bg-[var(--ink)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, "\u25B6 ", t('hex_parse_btn')) : /*#__PURE__*/React.createElement("button", {
+    onClick: stopParse,
+    className: "px-6 py-3 border border-[var(--danger)] text-[var(--danger)] uppercase tracking-[0.2em] text-xs hover:bg-[var(--danger)] hover:text-[var(--bg)] transition-colors",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, "\u25A0 ", t('hex_parse_stop')), parsing && /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-w-[200px]"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "h-2 bg-[var(--border-soft)] overflow-hidden rounded-sm"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "h-full bg-[var(--accent)] transition-all",
+    style: {
+      width: `${(progress * 100).toFixed(1)}%`
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] text-[var(--ink-muted)] mt-1",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, (progress * 100).toFixed(1), "% \xB7 ", parsedCount.toLocaleString(), " ", t('hex_parsing'))), !parsing && totalParsed > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] text-[var(--accent)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, "\u2713 ", t('hex_parse_done'), " \u2014 ", totalParsed.toLocaleString()), error && /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] text-[var(--danger)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, "\u26A0 ", error))), /*#__PURE__*/React.createElement("section", {
+    className: "border border-[var(--border)] bg-[var(--bg-panel)] p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-baseline justify-between mb-3 pb-2 border-b border-[var(--border-soft)] flex-wrap gap-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] uppercase tracking-[0.25em] text-[var(--ink-soft)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('hex_results_title'), " ", totalParsed > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "text-[var(--accent)] ml-2"
+  }, "(", totalParsed.toLocaleString(), ")")), results.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 flex-wrap",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] uppercase tracking-wider text-[var(--ink-muted)]"
+  }, t('hex_filter_type'), ":"), /*#__PURE__*/React.createElement("select", {
+    value: filterType,
+    onChange: e => setFilterType(e.target.value),
+    className: "text-[11px] bg-[var(--bg-input)] border border-[var(--border)] text-[var(--ink)] px-2 py-1 focus:outline-none focus:border-[var(--accent)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, t('hex_filter_all'), " (", results.length.toLocaleString(), ")"), typeStats.map(([name, cnt]) => /*#__PURE__*/React.createElement("option", {
+    key: name,
+    value: name
+  }, name, " (", cnt.toLocaleString(), ")"))), /*#__PURE__*/React.createElement("span", {
+    className: "text-[var(--border-hard)]"
+  }, "\xB7"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => downloadBlob(exportResultsTXT(filteredResults, hexOpts), `${(file?.name || 'parse').replace(/\.[^.]+$/, '')}_parsed.txt`),
+    className: "text-[10px] uppercase tracking-wider px-2 py-1 border border-[var(--ink)] text-[var(--ink)] hover:bg-[var(--ink)] hover:text-[var(--bg)] transition-colors"
+  }, t('hex_export_txt')), /*#__PURE__*/React.createElement("button", {
+    onClick: () => downloadBlob(exportResultsCSV(filteredResults, hexOpts), `${(file?.name || 'parse').replace(/\.[^.]+$/, '')}_parsed.csv`),
+    className: "text-[10px] uppercase tracking-wider px-2 py-1 border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--bg)] transition-colors"
+  }, t('hex_export_csv')))), results.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "text-[12px] italic text-[var(--placeholder)] py-6 text-center",
+    style: {
+      fontFamily: FONT_SERIF
+    }
+  }, t('hex_results_empty')) : /*#__PURE__*/React.createElement(React.Fragment, null, isCapped && /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] italic text-[var(--ink-muted)] mb-2",
+    style: {
+      fontFamily: FONT_SERIF
+    }
+  }, t('hex_results_capped').replace('{0}', displayLimit.toLocaleString()), " (", filteredResults.length.toLocaleString(), " ", lang === 'tr' ? 'görüntülenebilir' : 'available', ")"), /*#__PURE__*/React.createElement("div", {
+    className: "overflow-auto max-h-[600px] border border-[var(--border-soft)]"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-[11px]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, /*#__PURE__*/React.createElement("thead", {
+    className: "bg-[var(--bg)] sticky top-0 border-b border-[var(--border-soft)]"
+  }, /*#__PURE__*/React.createElement("tr", {
+    className: "text-[10px] uppercase tracking-wider text-[var(--ink-muted)]"
+  }, /*#__PURE__*/React.createElement("th", {
+    className: "text-left px-3 py-2"
+  }, t('hex_results_offset')), /*#__PURE__*/React.createElement("th", {
+    className: "text-left px-3 py-2"
+  }, t('hex_results_type')), /*#__PURE__*/React.createElement("th", {
+    className: "text-right px-3 py-2"
+  }, t('hex_results_length')), /*#__PURE__*/React.createElement("th", {
+    className: "text-left px-3 py-2"
+  }, "header"), /*#__PURE__*/React.createElement("th", {
+    className: "text-left px-3 py-2"
+  }, t('hex_results_payload')))), /*#__PURE__*/React.createElement("tbody", null, displayResults.map((r, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i,
+    className: "border-b border-[var(--border-soft)] hover:bg-[var(--bg)]"
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "px-3 py-1.5 text-[var(--ink-muted)] whitespace-nowrap"
+  }, r.offset.toString(16).toUpperCase().padStart(8, '0')), /*#__PURE__*/React.createElement("td", {
+    className: "px-3 py-1.5 whitespace-nowrap"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: r.color || 'var(--ink)'
+    }
+  }, "\u25CF "), /*#__PURE__*/React.createElement("span", {
+    className: "text-[var(--ink)]"
+  }, r.headerName)), /*#__PURE__*/React.createElement("td", {
+    className: "px-3 py-1.5 text-right text-[var(--ink-soft)]"
+  }, r.length), /*#__PURE__*/React.createElement("td", {
+    className: "px-3 py-1.5 text-[var(--accent)]"
+  }, formatHexBytes(r.headerBytes, hexOpts)), /*#__PURE__*/React.createElement("td", {
+    className: "px-3 py-1.5 text-[var(--ink-soft)] break-all max-w-[500px]"
+  }, formatHexBytes(r.payloadBytes, hexOpts), r.payloadTruncated ? ' …' : '')))))), isCapped && /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-center mt-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setDisplayLimit(displayLimit + 5000),
+    className: "text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[var(--border)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, "+ 5000 ", lang === 'tr' ? 'daha göster' : 'more')), /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] italic text-[var(--ink-muted)] mt-3",
+    style: {
+      fontFamily: FONT_SERIF
+    }
+  }, t('hex_export_hint')))), /*#__PURE__*/React.createElement("section", {
+    className: "border border-[var(--border-soft)] bg-[var(--bg)] p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] uppercase tracking-[0.3em] text-[var(--ink-soft)] mb-3 pb-2 border-b border-[var(--border-soft)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, lang === 'tr' ? 'ÖRNEK DOSYALAR' : 'SAMPLE FILES'), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "border border-[var(--border)] bg-[var(--bg-panel)] p-3 flex flex-col gap-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] font-semibold text-[var(--ink)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('hex_sample_mavlink_label'), /*#__PURE__*/React.createElement("span", {
+    className: "ml-1.5 text-[8px] uppercase tracking-wider text-[var(--accent)] bg-[var(--accent-soft)] px-1 py-0.5 rounded-sm"
+  }, "BIN")), /*#__PURE__*/React.createElement("div", {
+    className: "text-[9px] uppercase tracking-[0.18em] text-[var(--accent)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, ".TLOG \xB7 0xFE SYNC"), /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] italic leading-snug text-[var(--ink-soft)]",
+    style: {
+      fontFamily: FONT_SERIF
+    }
+  }, t('hex_sample_mavlink_desc')), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1.5 mt-auto pt-1"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: loadMavlinkSample,
+    className: "flex-1 text-[10px] uppercase tracking-wider py-1.5 border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--bg)] transition-colors",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('hex_load_sample')), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      const b = generateMavlinkSample();
+      downloadBlob(new Blob([b]), 'mavlink_sample.tlog');
+    },
+    className: "flex-1 text-[10px] uppercase tracking-wider py-1.5 border border-[var(--border)] text-[var(--ink-soft)] hover:border-[var(--ink)] hover:text-[var(--ink)] transition-colors",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, "\u2193 ", lang === 'tr' ? 'İNDİR' : 'DOWNLOAD'))), /*#__PURE__*/React.createElement("div", {
+    className: "border border-[var(--border)] bg-[var(--bg-panel)] p-3 flex flex-col gap-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] font-semibold text-[var(--ink)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('hex_sample_ubx_label'), /*#__PURE__*/React.createElement("span", {
+    className: "ml-1.5 text-[8px] uppercase tracking-wider text-[var(--accent)] bg-[var(--accent-soft)] px-1 py-0.5 rounded-sm"
+  }, "BIN")), /*#__PURE__*/React.createElement("div", {
+    className: "text-[9px] uppercase tracking-[0.18em] text-[var(--accent)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, ".UBX \xB7 0xB5 0x62 SYNC"), /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] italic leading-snug text-[var(--ink-soft)]",
+    style: {
+      fontFamily: FONT_SERIF
+    }
+  }, t('hex_sample_ubx_desc')), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1.5 mt-auto pt-1"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: loadUbxSample,
+    className: "flex-1 text-[10px] uppercase tracking-wider py-1.5 border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--bg)] transition-colors",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('hex_load_sample')), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      const b = generateUbxSample();
+      downloadBlob(new Blob([b]), 'ublox_gps.ubx');
+    },
+    className: "flex-1 text-[10px] uppercase tracking-wider py-1.5 border border-[var(--border)] text-[var(--ink-soft)] hover:border-[var(--ink)] hover:text-[var(--ink)] transition-colors",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, "\u2193 ", lang === 'tr' ? 'İNDİR' : 'DOWNLOAD'))))));
+}
+
+// ─── Header düzenleyici alt-bileşen ────────────────────────────
+function HeaderEditor({
+  header,
+  onUpdate,
+  onRemove,
+  t
+}) {
+  const patternBytes = parseHexString(header.patternHex);
+  const patternValid = !!patternBytes && patternBytes.length > 0;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "border border-[var(--border)] bg-[var(--bg)] p-3 grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_auto] gap-2 items-start",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "color",
+    value: header.color || '#888',
+    onChange: e => onUpdate({
+      color: e.target.value
+    }),
+    className: "w-8 h-8 cursor-pointer bg-transparent border-0 p-0",
+    title: t('hex_header_color')
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-1"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "block"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)]"
+  }, t('hex_header_name')), /*#__PURE__*/React.createElement("input", {
+    value: header.name || '',
+    onChange: e => onUpdate({
+      name: e.target.value
+    }),
+    placeholder: "HEARTBEAT, NAV-PVT, \u2026",
+    className: "w-full text-[11px] bg-[var(--bg-input)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none px-2 py-1 text-[var(--ink)] mt-0.5"
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "block"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)]"
+  }, t('hex_header_pattern')), /*#__PURE__*/React.createElement("input", {
+    value: header.patternHex || '',
+    onChange: e => onUpdate({
+      patternHex: e.target.value
+    }),
+    placeholder: "FE   |   B5 62   |   0xAA-0xBB",
+    className: `w-full text-[11px] bg-[var(--bg-input)] border focus:outline-none px-2 py-1 text-[var(--ink)] mt-0.5 ${patternValid ? 'border-[var(--border)] focus:border-[var(--accent)]' : 'border-[var(--danger)]'}`
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "block"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)]"
+  }, t('hex_header_desc')), /*#__PURE__*/React.createElement("input", {
+    value: header.description || '',
+    onChange: e => onUpdate({
+      description: e.target.value
+    }),
+    className: "w-full text-[10px] italic bg-[var(--bg-input)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none px-2 py-1 text-[var(--ink-soft)] mt-0.5",
+    style: {
+      fontFamily: FONT_SERIF
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-1"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "block"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)]"
+  }, t('hex_header_length_mode')), /*#__PURE__*/React.createElement("select", {
+    value: header.lengthMode || 'fixed',
+    onChange: e => onUpdate({
+      lengthMode: e.target.value
+    }),
+    className: "w-full text-[11px] bg-[var(--bg-input)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none px-2 py-1 text-[var(--ink)] mt-0.5"
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "fixed"
+  }, t('hex_lm_fixed')), /*#__PURE__*/React.createElement("option", {
+    value: "field"
+  }, t('hex_lm_field')), /*#__PURE__*/React.createElement("option", {
+    value: "next"
+  }, t('hex_lm_next')))), header.lengthMode === 'fixed' && /*#__PURE__*/React.createElement("label", {
+    className: "block"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)]"
+  }, t('hex_header_fixed_len')), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: "0",
+    value: header.fixedLen ?? 0,
+    onChange: e => onUpdate({
+      fixedLen: Number(e.target.value)
+    }),
+    className: "w-full text-[11px] bg-[var(--bg-input)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none px-2 py-1 text-[var(--ink)] mt-0.5"
+  })), header.lengthMode === 'field' && /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-1"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "block"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)]"
+  }, t('hex_field_offset')), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: "0",
+    value: header.fieldOffset ?? 0,
+    onChange: e => onUpdate({
+      fieldOffset: Number(e.target.value)
+    }),
+    className: "w-full text-[11px] bg-[var(--bg-input)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none px-2 py-1 text-[var(--ink)] mt-0.5"
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "block"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)]"
+  }, t('hex_field_size')), /*#__PURE__*/React.createElement("select", {
+    value: header.fieldSize ?? 1,
+    onChange: e => onUpdate({
+      fieldSize: Number(e.target.value)
+    }),
+    className: "w-full text-[11px] bg-[var(--bg-input)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none px-2 py-1 text-[var(--ink)] mt-0.5"
+  }, /*#__PURE__*/React.createElement("option", {
+    value: 1
+  }, "1"), /*#__PURE__*/React.createElement("option", {
+    value: 2
+  }, "2"), /*#__PURE__*/React.createElement("option", {
+    value: 4
+  }, "4"))), /*#__PURE__*/React.createElement("label", {
+    className: "block"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)]"
+  }, t('hex_field_endian')), /*#__PURE__*/React.createElement("select", {
+    value: header.fieldEndian || 'LE',
+    onChange: e => onUpdate({
+      fieldEndian: e.target.value
+    }),
+    className: "w-full text-[11px] bg-[var(--bg-input)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none px-2 py-1 text-[var(--ink)] mt-0.5"
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "LE"
+  }, "LE"), /*#__PURE__*/React.createElement("option", {
+    value: "BE"
+  }, "BE"))), /*#__PURE__*/React.createElement("label", {
+    className: "block"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)]"
+  }, t('hex_field_extra')), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: header.fieldExtra ?? 0,
+    onChange: e => onUpdate({
+      fieldExtra: Number(e.target.value)
+    }),
+    className: "w-full text-[11px] bg-[var(--bg-input)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none px-2 py-1 text-[var(--ink)] mt-0.5"
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "flex items-center gap-1.5 cursor-pointer col-span-2 mt-1"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: !!header.fieldIncludesAll,
+    onChange: e => onUpdate({
+      fieldIncludesAll: e.target.checked
+    }),
+    className: "accent-[var(--accent)]"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] uppercase tracking-wider text-[var(--ink-soft)]"
+  }, t('hex_field_includes'))))), /*#__PURE__*/React.createElement("button", {
+    onClick: onRemove,
+    className: "text-[10px] uppercase tracking-wider text-[var(--ink-muted)] hover:text-[var(--danger)] transition-colors px-2 py-1 self-start",
+    title: t('hex_header_remove')
+  }, "\u2715"));
+}
+
 // ─── BilgiPage — terim sözlüğü, açıklayıcı şekiller ───────────
 function BilgiPage({
   t,
@@ -6055,6 +7419,9 @@ function NavTabs({
     key: 'waveform',
     label: t('nav_waveform')
   }, {
+    key: 'hex',
+    label: t('nav_hex')
+  }, {
     key: 'bilgi',
     label: t('nav_bilgi')
   }];
@@ -6569,7 +7936,7 @@ function App() {
     style: {
       fontFamily: FONT_MONO
     }
-  }, route === 'sparams' ? t('sparams_subtitle') : route === 'iq' ? t('iq_subtitle') : route === 'waveform' ? t('wf_subtitle') : route === 'bilgi' ? t('bilgi_subtitle') : t('subtitle')), /*#__PURE__*/React.createElement("h1", {
+  }, route === 'sparams' ? t('sparams_subtitle') : route === 'iq' ? t('iq_subtitle') : route === 'waveform' ? t('wf_subtitle') : route === 'hex' ? t('hex_subtitle') : route === 'bilgi' ? t('bilgi_subtitle') : t('subtitle')), /*#__PURE__*/React.createElement("h1", {
     className: "leading-none text-[var(--ink)]",
     style: {
       fontFamily: FONT_SERIF,
@@ -6577,14 +7944,14 @@ function App() {
       fontSize: 'clamp(2.5rem, 6vw, 4rem)',
       letterSpacing: '-0.02em'
     }
-  }, route === 'sparams' ? t('sparams_title_a') : route === 'iq' ? t('iq_title_a') : route === 'waveform' ? t('wf_title_a') : route === 'bilgi' ? t('bilgi_title_a') : t('title_a'), ' ', /*#__PURE__*/React.createElement("span", {
+  }, route === 'sparams' ? t('sparams_title_a') : route === 'iq' ? t('iq_title_a') : route === 'waveform' ? t('wf_title_a') : route === 'hex' ? t('hex_title_a') : route === 'bilgi' ? t('bilgi_title_a') : t('title_a'), ' ', /*#__PURE__*/React.createElement("span", {
     className: "italic text-[var(--accent)]"
-  }, route === 'sparams' ? t('sparams_title_b') : route === 'iq' ? t('iq_title_b') : route === 'waveform' ? t('wf_title_b') : route === 'bilgi' ? t('bilgi_title_b') : t('title_b'))), /*#__PURE__*/React.createElement("p", {
+  }, route === 'sparams' ? t('sparams_title_b') : route === 'iq' ? t('iq_title_b') : route === 'waveform' ? t('wf_title_b') : route === 'hex' ? t('hex_title_b') : route === 'bilgi' ? t('bilgi_title_b') : t('title_b'))), /*#__PURE__*/React.createElement("p", {
     className: "text-sm text-[var(--ink-soft)] mt-4 max-w-xl italic leading-relaxed",
     style: {
       fontFamily: FONT_SERIF
     }
-  }, route === 'sparams' ? t('sparams_intro') : route === 'iq' ? t('iq_intro') : route === 'waveform' ? t('wf_intro') : route === 'bilgi' ? t('bilgi_intro') : t('intro'))), /*#__PURE__*/React.createElement("div", {
+  }, route === 'sparams' ? t('sparams_intro') : route === 'iq' ? t('iq_intro') : route === 'waveform' ? t('wf_intro') : route === 'hex' ? t('hex_intro') : route === 'bilgi' ? t('bilgi_intro') : t('intro'))), /*#__PURE__*/React.createElement("div", {
     className: "flex flex-col items-end gap-4"
   }, /*#__PURE__*/React.createElement(Selectors, {
     theme: themeKey,
@@ -7338,6 +8705,11 @@ function App() {
     onWfFilesChange: setWfFiles,
     theme: theme,
     t: t
+  })), route === 'hex' && /*#__PURE__*/React.createElement("section", {
+    className: "space-y-6"
+  }, /*#__PURE__*/React.createElement(HexParserPage, {
+    t: t,
+    lang: lang
   })), route === 'bilgi' && /*#__PURE__*/React.createElement("section", {
     className: "space-y-6"
   }, /*#__PURE__*/React.createElement(BilgiPage, {
