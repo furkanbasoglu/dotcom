@@ -195,6 +195,20 @@ const STRINGS = {
     sparams_sample: 'örnek 2-port',
     sparams_sample_hint: 'Sentetik 2-portlu bant-geçiren filtre, 0.5–3 GHz',
     reset_zoom: 'yakınlaşmayı sıfırla',
+    edit_title: 'başlığı düzenle',
+    chart_x_label: 'X ekseni etiketi',
+    chart_y_label: 'Y ekseni etiketi',
+    chart_normalize: 'normalize',
+    chart_show_points: 'noktaları göster',
+    chart_settings: 'grafik ayarları',
+    samples_title: 'örnek dosyalar',
+    samples_hint: 'farklı format/senaryo — indir ve gerçek dosyayı incele',
+    samples_load: 'yükle',
+    samples_download: 'indir',
+    samples_load_title: 'uygulamaya yükle',
+    samples_download_title: 'diske kaydet (formatı incele)',
+    samples_binary_only: 'binary dosya — sadece formatı incelemek için',
+    samples_inspect_only: 'sadece indir',
     maximize: 'büyüt',
     restore: 'küçült',
     next_chart: 'sonraki',
@@ -380,6 +394,20 @@ const STRINGS = {
     sparams_sample: 'sample 2-port',
     sparams_sample_hint: 'Synthetic 2-port bandpass filter, 0.5–3 GHz',
     reset_zoom: 'reset zoom',
+    edit_title: 'edit title',
+    chart_x_label: 'X axis label',
+    chart_y_label: 'Y axis label',
+    chart_normalize: 'normalize',
+    chart_show_points: 'show points',
+    chart_settings: 'chart settings',
+    samples_title: 'sample files',
+    samples_hint: 'different formats/scenarios — download and inspect the real file',
+    samples_load: 'load',
+    samples_download: 'download',
+    samples_load_title: 'load into app',
+    samples_download_title: 'save to disk (inspect format)',
+    samples_binary_only: 'binary file — for format inspection only',
+    samples_inspect_only: 'download only',
     maximize: 'maximize',
     restore: 'restore',
     next_chart: 'next',
@@ -558,6 +586,72 @@ function makeSampleS2P() {
     // S12 = S21 (resiprokal)
     const fGHz = (f / 1e9).toFixed(6);
     lines.push(`${fGHz}  ${magS11_dB.toFixed(3)} ${phaseS11_deg.toFixed(2)}  ${magS21_dB.toFixed(3)} ${phaseS21_norm.toFixed(2)}  ${magS21_dB.toFixed(3)} ${phaseS21_norm.toFixed(2)}  ${magS22_dB.toFixed(3)} ${phaseS22_deg.toFixed(2)}`);
+  }
+  return lines.join('\n');
+}
+
+// ─── Touchstone ek örnekler — farklı format/port sayısı ─────────
+// .s2p in DB format: 3rd-order Butterworth low-pass filter, fc=2 GHz
+function makeS2P_LPF_DB() {
+  const lines = ['! 3rd-order Butterworth low-pass filter (LPF)', '! Cutoff: 2.0 GHz · Z0 = 50 ohm', '! Format: dB / degree', '# GHz S DB R 50'];
+  const fc = 2.0;
+  const order = 3;
+  for (let i = 0; i <= 80; i++) {
+    const f = 0.05 + i * 0.0625; // 0.05 → ~5 GHz
+    const omegaN = f / fc;
+    const H_abs = 1 / Math.sqrt(1 + Math.pow(omegaN, 2 * order));
+    const H_dB = 20 * Math.log10(H_abs);
+    const H_phase_rad = -order * Math.atan(omegaN);
+    const H_phase = H_phase_rad * 180 / Math.PI;
+    const S11_lin = Math.sqrt(Math.max(0, 1 - H_abs * H_abs));
+    const S11_dB = 20 * Math.log10(S11_lin + 1e-30);
+    const S11_phase = 180;
+    lines.push(`${f.toFixed(4)}  ${S11_dB.toFixed(3)} ${S11_phase.toFixed(2)}` + `  ${H_dB.toFixed(3)} ${H_phase.toFixed(2)}` + `  ${H_dB.toFixed(3)} ${H_phase.toFixed(2)}` + `  ${S11_dB.toFixed(3)} ${S11_phase.toFixed(2)}`);
+  }
+  return lines.join('\n');
+}
+
+// .s1p in MA format: Antenna match — only S11
+function makeS1P_antenna_MA() {
+  const lines = ['! Patch antenna S11 (single-port reflection)', '! Resonant frequency: 2.45 GHz · Bandwidth: ~100 MHz', '! Format: linear magnitude / degree', '# GHz S MA R 50'];
+  const f0 = 2.45;
+  const Q = 25; // moderate Q-factor
+  for (let i = 0; i <= 100; i++) {
+    const f = 2.0 + i * 0.01; // 2.0 → 3.0 GHz
+    // Resonant impedance: Z = R + j·X(f). Around f0, real part dips, imag swings.
+    const x = 2 * Q * (f - f0) / f0;
+    // |S11|: dip at resonance
+    const mag = 0.1 + 0.85 * Math.abs(x) / Math.sqrt(1 + x * x); // 0.1 at f0, ~0.95 far
+    const magClamped = Math.min(0.99, mag);
+    const phase = Math.atan2(x, 1) * 180 / Math.PI - 90;
+    lines.push(`${f.toFixed(4)}  ${magClamped.toFixed(5)} ${phase.toFixed(2)}`);
+  }
+  return lines.join('\n');
+}
+
+// .s2p in RI (Real/Imag) format: Coaxial cable, lossy, electrical length 0.5m
+function makeS2P_cable_RI() {
+  const lines = ['! Coaxial cable model: RG-58 1 meter @ Z0=50', '! Attenuation: ~0.5 dB/m @ 1 GHz, scales as sqrt(f)', '! Format: real / imag (RI)', '# GHz S RI R 50'];
+  const length_m = 1.0;
+  const vp = 0.66 * 3e8; // velocity factor 0.66
+  for (let i = 0; i <= 60; i++) {
+    const fGHz = 0.1 + i * 0.05; // 0.1 → 3.1 GHz
+    const f = fGHz * 1e9;
+    // Attenuation per meter (alpha) scales as sqrt(f)
+    const alpha_dB_per_m = 0.5 * Math.sqrt(fGHz);
+    const alpha_Np_per_m = alpha_dB_per_m / 8.686;
+    const totalAtten_Np = alpha_Np_per_m * length_m;
+    // Phase: beta * length, beta = 2*pi*f / vp
+    const phase_rad = -2 * Math.PI * f * length_m / vp;
+    // S21 = exp(-alpha*L) * exp(-j*beta*L)
+    const mag_S21 = Math.exp(-totalAtten_Np);
+    const S21_re = mag_S21 * Math.cos(phase_rad);
+    const S21_im = mag_S21 * Math.sin(phase_rad);
+    // S11 small (matched cable, tiny reflection from imperfections)
+    const ripple = 0.02 * Math.sin(2 * Math.PI * f / 200e6);
+    const S11_re = ripple;
+    const S11_im = ripple * 0.5;
+    lines.push(`${fGHz.toFixed(4)}  ${S11_re.toFixed(6)} ${S11_im.toFixed(6)}` + `  ${S21_re.toFixed(6)} ${S21_im.toFixed(6)}` + `  ${S21_re.toFixed(6)} ${S21_im.toFixed(6)}` + `  ${S11_re.toFixed(6)} ${S11_im.toFixed(6)}`);
   }
   return lines.join('\n');
 }
@@ -903,13 +997,200 @@ function fftshift(arr) {
   return arr.slice(half).concat(arr.slice(0, half));
 }
 
-// ─── IQ veri çözümleyicisi ─────────────────────────────────────
-// CSV/text dosyasını {samples: [{i,q}], ...} olarak parse eder.
-// Desteklenen formatlar:
-//   • 2 kolon CSV: "I,Q" başlık opsiyonel
-//   • 3 kolon CSV: "t,I,Q" — ilk kolon zaman olarak yorumlanır
-//   • Whitespace ayrılmış: "I Q" satır başına
-//   • Complex literal: "0.5+0.3j" veya "(0.5,0.3)"
+// ─── Binary IQ parser'ları ─────────────────────────────────────
+// Spektrum analizör / SDR çıktısı binary IQ formatları:
+//   .cfile / .fc32 / .raw32 : complex float32 little-endian (GNU Radio)
+//   .iq / .sc16 / .raw16    : complex int16   little-endian (USRP, SDR# v1)
+//   .cs8                    : complex int8    (HackRF, RTL-SDR)
+//   .sigmf-data + meta JSON : SigMF v1.0.0 standardı
+//
+// Bu fonksiyonlar ArrayBuffer alır, {samples, sampleRate, centerFreq} döner.
+
+function parseIQ_complexFloat32(buf, filename) {
+  const view = new DataView(buf);
+  const N = Math.floor(buf.byteLength / 8);
+  if (N === 0) throw new Error('boş binary dosya');
+  const samples = new Array(N);
+  for (let i = 0; i < N; i++) {
+    samples[i] = {
+      i: view.getFloat32(i * 8, true),
+      q: view.getFloat32(i * 8 + 4, true)
+    };
+  }
+  return {
+    type: 'iq',
+    name: filename,
+    samples,
+    sampleRate: 1,
+    centerFreq: 0
+  };
+}
+function parseIQ_complexInt16(buf, filename, scale = 32767) {
+  const view = new DataView(buf);
+  const N = Math.floor(buf.byteLength / 4);
+  if (N === 0) throw new Error('boş binary dosya');
+  const samples = new Array(N);
+  for (let i = 0; i < N; i++) {
+    samples[i] = {
+      i: view.getInt16(i * 4, true) / scale,
+      q: view.getInt16(i * 4 + 2, true) / scale
+    };
+  }
+  return {
+    type: 'iq',
+    name: filename,
+    samples,
+    sampleRate: 1,
+    centerFreq: 0
+  };
+}
+function parseIQ_complexInt8(buf, filename) {
+  const view = new DataView(buf);
+  const N = Math.floor(buf.byteLength / 2);
+  if (N === 0) throw new Error('boş binary dosya');
+  const samples = new Array(N);
+  for (let i = 0; i < N; i++) {
+    samples[i] = {
+      i: view.getInt8(i * 2) / 127,
+      q: view.getInt8(i * 2 + 1) / 127
+    };
+  }
+  return {
+    type: 'iq',
+    name: filename,
+    samples,
+    sampleRate: 1,
+    centerFreq: 0
+  };
+}
+// SigMF parse: meta (.sigmf-meta JSON) + data (.sigmf-data binary) eşleştirilir.
+// Kullanıcı çiftini yükledikten sonra meta'daki datatype'a göre data parse edilir.
+function parseSigMFMeta(text, filename) {
+  try {
+    const meta = JSON.parse(text);
+    return {
+      type: 'sigmf-meta',
+      name: filename,
+      meta
+    };
+  } catch (e) {
+    throw new Error('SigMF meta JSON parse hatası: ' + e.message);
+  }
+}
+function parseSigMFData(buf, meta, filename) {
+  const g = meta.global || {};
+  const dt = (g['core:datatype'] || 'cf32_le').toLowerCase();
+  const fs = g['core:sample_rate'] || 1;
+  const captures = meta.captures || [{}];
+  const fc = captures[0]['core:frequency'] || 0;
+  let result;
+  if (dt === 'cf32_le' || dt === 'cf32') result = parseIQ_complexFloat32(buf, filename);else if (dt === 'ci16_le' || dt === 'ci16') result = parseIQ_complexInt16(buf, filename);else if (dt === 'ci8') result = parseIQ_complexInt8(buf, filename);else throw new Error('desteklenmeyen SigMF datatype: ' + dt);
+  return {
+    ...result,
+    sampleRate: fs,
+    centerFreq: fc
+  };
+}
+
+// ─── WAV parser ────────────────────────────────────────────────
+// RIFF/WAVE format: 16-bit PCM, 8-bit unsigned PCM, 24-bit PCM, 32-bit float.
+// Mono → tek kanal, stereo → 2 kanal.
+function parseWAV(buf, filename) {
+  const view = new DataView(buf);
+  // RIFF header
+  if (buf.byteLength < 44) throw new Error('WAV dosyası çok küçük');
+  const riff = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+  if (riff !== 'RIFF') throw new Error('WAV header bulunamadı (RIFF beklenir, ' + riff + ' geldi)');
+  const wave = String.fromCharCode(view.getUint8(8), view.getUint8(9), view.getUint8(10), view.getUint8(11));
+  if (wave !== 'WAVE') throw new Error('WAVE kimliği bulunamadı');
+  // fmt chunk taraması
+  let pos = 12;
+  let fmt = null;
+  let dataOffset = -1,
+    dataSize = 0;
+  while (pos + 8 <= buf.byteLength) {
+    const id = String.fromCharCode(view.getUint8(pos), view.getUint8(pos + 1), view.getUint8(pos + 2), view.getUint8(pos + 3));
+    const sz = view.getUint32(pos + 4, true);
+    if (id === 'fmt ') {
+      fmt = {
+        format: view.getUint16(pos + 8, true),
+        // 1 = PCM, 3 = IEEE float
+        channels: view.getUint16(pos + 10, true),
+        sampleRate: view.getUint32(pos + 12, true),
+        byteRate: view.getUint32(pos + 16, true),
+        blockAlign: view.getUint16(pos + 20, true),
+        bitsPerSample: view.getUint16(pos + 22, true)
+      };
+    } else if (id === 'data') {
+      dataOffset = pos + 8;
+      dataSize = sz;
+      break;
+    }
+    pos += 8 + sz + sz % 2; // 2-byte hizalama
+  }
+  if (!fmt) throw new Error('WAV fmt chunk bulunamadı');
+  if (dataOffset < 0) throw new Error('WAV data chunk bulunamadı');
+  const {
+    format,
+    channels,
+    sampleRate,
+    bitsPerSample,
+    blockAlign
+  } = fmt;
+  const numFrames = Math.floor(dataSize / blockAlign);
+  const channelsData = Array.from({
+    length: channels
+  }, () => new Array(numFrames));
+  const bytesPerSample = bitsPerSample / 8;
+  for (let f = 0; f < numFrames; f++) {
+    for (let c = 0; c < channels; c++) {
+      const offset = dataOffset + f * blockAlign + c * bytesPerSample;
+      let v;
+      if (format === 1) {
+        // PCM int
+        if (bitsPerSample === 8) v = (view.getUint8(offset) - 128) / 128;else if (bitsPerSample === 16) v = view.getInt16(offset, true) / 32768;else if (bitsPerSample === 24) {
+          const b0 = view.getUint8(offset),
+            b1 = view.getUint8(offset + 1),
+            b2 = view.getInt8(offset + 2);
+          v = (b2 << 16 | b1 << 8 | b0) / 8388608;
+        } else if (bitsPerSample === 32) v = view.getInt32(offset, true) / 2147483648;else throw new Error('PCM ' + bitsPerSample + ' bit desteklenmiyor');
+      } else if (format === 3) {
+        // IEEE float
+        if (bitsPerSample === 32) v = view.getFloat32(offset, true);else if (bitsPerSample === 64) v = view.getFloat64(offset, true);else throw new Error('IEEE float ' + bitsPerSample + ' bit desteklenmiyor');
+      } else if (format === 65534) {
+        // WAVE_FORMAT_EXTENSIBLE — basit PCM gibi davran
+        if (bitsPerSample === 16) v = view.getInt16(offset, true) / 32768;else if (bitsPerSample === 32) v = view.getInt32(offset, true) / 2147483648;else throw new Error('EXTENSIBLE ' + bitsPerSample + ' bit desteklenmiyor');
+      } else {
+        throw new Error('WAV format kodu desteklenmiyor: ' + format);
+      }
+      channelsData[c][f] = v;
+    }
+  }
+  const chNames = channels === 1 ? ['mono'] : channels === 2 ? ['L', 'R'] : Array.from({
+    length: channels
+  }, (_, i) => 'CH' + (i + 1));
+  return {
+    type: 'waveform',
+    name: filename,
+    channels: channelsData.map((s, i) => ({
+      name: chNames[i],
+      samples: s
+    })),
+    sampleRate,
+    timeAxisProvided: false
+  };
+}
+
+// Binary IQ formatlarını dosya uzantısı + heuristic ile algıla.
+function parseIQBinary(buf, filename) {
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+  if (ext === 'cfile' || ext === 'fc32' || ext === 'raw32' || ext === 'c32') return parseIQ_complexFloat32(buf, filename);
+  if (ext === 'iq' || ext === 'sc16' || ext === 'raw16' || ext === 'c16' || ext === 'ci16') return parseIQ_complexInt16(buf, filename);
+  if (ext === 'sc8' || ext === 'cs8' || ext === 'c8' || ext === 'ci8') return parseIQ_complexInt8(buf, filename);
+  if (ext === 'sigmf-data') return parseIQ_complexFloat32(buf, filename); // varsayılan cf32_le
+  // Belirsiz: en yaygın olduğu için cf32 dene
+  return parseIQ_complexFloat32(buf, filename);
+}
 function parseIQData(text, filename) {
   const lines = text.split(/\r?\n/).filter(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('%'));
   if (lines.length === 0) throw new Error('boş dosya');
@@ -1085,6 +1366,315 @@ function makeSampleWaveform() {
     sampleRate: fs,
     timeAxisProvided: false
   };
+}
+
+// ─── IQ text/CSV serializer'lar — örnek dosya üreticileri ──────
+// 16-QAM .csv (header + 2 column)
+function makeIQ_csv_16qam() {
+  const lines = ['# 16-QAM baseband, fs = 1.0 MS/s, fc = 0 Hz', 'I,Q'];
+  const N = 1024,
+    sps = 8;
+  for (let n = 0; n < N; n++) {
+    const sym = Math.floor(n / sps);
+    const I = [-3, -1, 1, 3][sym + 0 & 3];
+    const Q = [-3, -1, 1, 3][sym >> 2 & 3];
+    const t = n % sps / sps;
+    const pulse = 0.5 * (1 - Math.cos(2 * Math.PI * t));
+    const i = (I * pulse + (Math.random() - 0.5) * 0.3).toFixed(5);
+    const q = (Q * pulse + (Math.random() - 0.5) * 0.3).toFixed(5);
+    lines.push(`${i},${q}`);
+  }
+  return lines.join('\n');
+}
+
+// BPSK in whitespace-delimited .txt format (no header)
+function makeIQ_txt_bpsk() {
+  const lines = ['# BPSK at 100 kBaud, fs = 800 kS/s (8 samples/symbol)', '# Two columns: I Q  (whitespace separated)'];
+  const N = 2048,
+    sps = 8;
+  for (let n = 0; n < N; n++) {
+    const sym = Math.floor(n / sps);
+    const bit = sym * 2654435761 & 1; // pseudo-random bit
+    const I_sym = bit ? 1 : -1;
+    const Q_sym = 0;
+    // Raised cosine pulse approximation
+    const t = n % sps / sps;
+    const pulse = 0.5 * (1 - Math.cos(2 * Math.PI * t));
+    const noise_i = (Math.random() - 0.5) * 0.15;
+    const noise_q = (Math.random() - 0.5) * 0.15;
+    const i = (I_sym * pulse + noise_i).toFixed(5);
+    const q = (Q_sym * pulse + noise_q).toFixed(5);
+    lines.push(`${i} ${q}`);
+  }
+  return lines.join('\n');
+}
+
+// Complex literal notation: "a+bj" (NumPy savetxt format)
+function makeIQ_txt_complex_literal() {
+  const lines = ['# Chirp signal in complex literal notation (a+bj)', '# fs = 500 kS/s, sweep 10-100 kHz over 4 ms'];
+  const N = 2000,
+    fs = 500e3;
+  const f0 = 10e3,
+    f1 = 100e3;
+  const T = N / fs;
+  for (let n = 0; n < N; n++) {
+    const t = n / fs;
+    // Linear chirp phase: 2*pi*(f0*t + 0.5*(f1-f0)/T * t^2)
+    const phase = 2 * Math.PI * (f0 * t + 0.5 * (f1 - f0) / T * t * t);
+    const I = Math.cos(phase);
+    const Q = Math.sin(phase);
+    const sign = Q >= 0 ? '+' : '-';
+    lines.push(`${I.toFixed(6)}${sign}${Math.abs(Q).toFixed(6)}j`);
+  }
+  return lines.join('\n');
+}
+
+// ─── Waveform serializer'lar — örnek dosya üreticileri ─────────
+// Tek kanal, tek kolon, çıplak değerler (PCM-style)
+function makeWF_txt_audio_mono() {
+  const lines = ['# Mono audio sample (synthesized), fs = 44100 Hz', '# One value per line — amplitude in [-1, 1]'];
+  const fs = 44100;
+  const N = 4410; // 0.1 s
+  for (let n = 0; n < N; n++) {
+    const t = n / fs;
+    // 440 Hz with vibrato + harmonic
+    const vib = 1 + 0.005 * Math.sin(2 * Math.PI * 6 * t);
+    const s = 0.6 * Math.sin(2 * Math.PI * 440 * vib * t) + 0.2 * Math.sin(2 * Math.PI * 880 * vib * t) + 0.05 * (Math.random() - 0.5); // noise
+    lines.push(s.toFixed(5));
+  }
+  return lines.join('\n');
+}
+
+// Çok kolon CSV with explicit time axis (oscilloscope-style)
+function makeWF_csv_scope() {
+  const lines = ['# Oscilloscope capture: square wave with overshoot, plus reference sine', '# Columns: t(s), CH1(V), CH2(V)', 't,CH1,CH2'];
+  const fs = 100e3;
+  const N = 2000; // 20 ms
+  const f_sq = 1e3;
+  for (let n = 0; n < N; n++) {
+    const t = n / fs;
+    // Square wave with finite rise time + small overshoot
+    const phase = t * f_sq % 1;
+    const sq = phase < 0.5 ? 1 : -1;
+    // Add ringing on edges
+    const near_edge = Math.min(Math.abs(phase - 0.5), Math.abs(phase));
+    const ringing = near_edge < 0.02 ? 0.25 * Math.exp(-near_edge * 200) * Math.sin(2 * Math.PI * 20e3 * t) : 0;
+    const ch1 = sq + ringing + (Math.random() - 0.5) * 0.02;
+    // Reference 500 Hz sine
+    const ch2 = 0.8 * Math.sin(2 * Math.PI * 500 * t);
+    lines.push(`${t.toExponential(4)},${ch1.toFixed(4)},${ch2.toFixed(4)}`);
+  }
+  return lines.join('\n');
+}
+
+// 2-tone + AM (mevcut makeSampleWaveform'un CSV serialization'ı)
+function makeWF_csv_2tone() {
+  const lines = ['# 2-tone + AM modulation (multi-channel)', '# fs = 10 kHz, no time column (sample/row)', 'Tone+Harmonic,AM_1500Hz'];
+  const fs = 10000,
+    N = 2000;
+  for (let n = 0; n < N; n++) {
+    const t = n / fs;
+    const a = Math.sin(2 * Math.PI * 250 * t) + 0.3 * Math.sin(2 * Math.PI * 800 * t);
+    const b = (1 + 0.5 * Math.sin(2 * Math.PI * 5 * t)) * Math.cos(2 * Math.PI * 1500 * t);
+    lines.push(`${a.toFixed(5)},${b.toFixed(5)}`);
+  }
+  return lines.join('\n');
+}
+
+// ─── Ek CSV örnekleri (3. CSV: sensor logger) ──────────────────
+function makeCSV_sensor_log() {
+  const lines = ['# Multi-sensor log, 1 sample/s for 5 minutes', 't_s,temp_C,humidity_pct,pressure_hPa,light_lux'];
+  const N = 300;
+  for (let n = 0; n < N; n++) {
+    const t = n;
+    const temp = 22 + 1.5 * Math.sin(2 * Math.PI * n / 90) + (Math.random() - 0.5) * 0.2;
+    const hum = 55 + 8 * Math.sin(2 * Math.PI * n / 120 + 1) + (Math.random() - 0.5) * 1;
+    const pres = 1013 + 2 * Math.sin(2 * Math.PI * n / 200) + (Math.random() - 0.5) * 0.3;
+    const lux = 400 + 350 * Math.sin(2 * Math.PI * n / 180) + (Math.random() - 0.5) * 15;
+    lines.push(`${t},${temp.toFixed(2)},${hum.toFixed(2)},${pres.toFixed(2)},${Math.max(0, lux).toFixed(1)}`);
+  }
+  return lines.join('\n');
+}
+
+// ─── Binary format generator'ları ──────────────────────────────
+// Bu fonksiyonlar Uint8Array (raw bytes) döndürür; SampleGallery bunu
+// Blob olarak indirir. Kullanıcı bilgisayarında format inceleyebilir.
+
+// WAV PCM16 mono — RIFF/WAVE format, 44 byte header + sample data
+// Referans: http://soundfile.sapp.org/doc/WaveFormat/
+function makeWAV_mono_440Hz() {
+  const fs = 22050; // örnekleme hızı
+  const N = fs; // 1 saniye
+  const samples = new Int16Array(N);
+  for (let n = 0; n < N; n++) {
+    const t = n / fs;
+    // 440 Hz fundamental + 880 Hz harmonic (decay)
+    const env = Math.exp(-t * 0.5);
+    const s = env * (0.6 * Math.sin(2 * Math.PI * 440 * t) + 0.2 * Math.sin(2 * Math.PI * 880 * t));
+    samples[n] = Math.round(s * 30000); // int16 range
+  }
+  return wavEncode(samples, fs, 1);
+}
+function makeWAV_stereo_chirp() {
+  const fs = 44100;
+  const N = 2 * fs; // 2 saniye
+  // Stereo: L = chirp, R = ton
+  const interleaved = new Int16Array(N * 2);
+  for (let n = 0; n < N; n++) {
+    const t = n / fs;
+    // Linear chirp 200 Hz → 3000 Hz
+    const f0 = 200,
+      f1 = 3000,
+      T = N / fs;
+    const phase = 2 * Math.PI * (f0 * t + 0.5 * (f1 - f0) / T * t * t);
+    const L = 0.7 * Math.sin(phase);
+    const R = 0.5 * Math.sin(2 * Math.PI * 1000 * t); // 1 kHz referans
+    interleaved[n * 2 + 0] = Math.round(L * 28000);
+    interleaved[n * 2 + 1] = Math.round(R * 28000);
+  }
+  return wavEncode(interleaved, fs, 2);
+}
+function wavEncode(samples, sampleRate, numChannels) {
+  const numSamples = numChannels === 1 ? samples.length : samples.length / numChannels;
+  const bytesPerSample = 2;
+  const blockAlign = numChannels * bytesPerSample;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = samples.length * bytesPerSample;
+  const buf = new ArrayBuffer(44 + dataSize);
+  const dv = new DataView(buf);
+  let p = 0;
+  function w8(s) {
+    for (let i = 0; i < s.length; i++) dv.setUint8(p++, s.charCodeAt(i));
+  }
+  function w32(n) {
+    dv.setUint32(p, n, true);
+    p += 4;
+  }
+  function w16(n) {
+    dv.setUint16(p, n, true);
+    p += 2;
+  }
+  // RIFF chunk
+  w8('RIFF');
+  w32(36 + dataSize);
+  w8('WAVE');
+  // fmt chunk
+  w8('fmt ');
+  w32(16); // chunk size
+  w16(1); // PCM = 1
+  w16(numChannels);
+  w32(sampleRate);
+  w32(byteRate);
+  w16(blockAlign);
+  w16(bytesPerSample * 8); // bits per sample
+  // data chunk
+  w8('data');
+  w32(dataSize);
+  // Sample data
+  for (let i = 0; i < samples.length; i++) {
+    dv.setInt16(p, samples[i], true);
+    p += 2;
+  }
+  return new Uint8Array(buf);
+}
+
+// GNU Radio .cfile — interleaved float32 little-endian (cf32)
+// Referans: https://wiki.gnuradio.org/index.php/File_Source
+function makeCfile_QPSK() {
+  const N = 2048;
+  const sps = 8;
+  const buf = new ArrayBuffer(N * 8); // float32 I + float32 Q
+  const dv = new DataView(buf);
+  let p = 0;
+  for (let n = 0; n < N; n++) {
+    const sym = Math.floor(n / sps);
+    // QPSK constellation: ±1 in I, ±1 in Q
+    const I_sym = sym * 2654435761 & 1 ? 1 : -1;
+    const Q_sym = sym * 2246822519 & 1 ? 1 : -1;
+    const t = n % sps / sps;
+    const pulse = 0.5 * (1 - Math.cos(2 * Math.PI * t));
+    const I = I_sym * pulse + (Math.random() - 0.5) * 0.1;
+    const Q = Q_sym * pulse + (Math.random() - 0.5) * 0.1;
+    dv.setFloat32(p, I, true);
+    p += 4;
+    dv.setFloat32(p, Q, true);
+    p += 4;
+  }
+  return new Uint8Array(buf);
+}
+
+// USRP .sc16 — interleaved int16 little-endian (ci16)
+// Referans: https://files.ettus.com/manual/page_configuration.html#config_stream_args_otw_format
+function makeSC16_FM_tone() {
+  const N = 4096;
+  const fs = 2e6; // 2 MS/s
+  const f_dev = 50e3; // ±50 kHz deviation
+  const f_mod = 5e3; // 5 kHz modulating tone
+  const buf = new ArrayBuffer(N * 4); // int16 I + int16 Q
+  const dv = new DataView(buf);
+  let p = 0;
+  let phase = 0;
+  for (let n = 0; n < N; n++) {
+    const t = n / fs;
+    // FM: instantaneous freq = f_dev * cos(2*pi*f_mod*t), phase = integral
+    phase += 2 * Math.PI * f_dev * Math.cos(2 * Math.PI * f_mod * t) / fs;
+    const I = Math.round(Math.cos(phase) * 30000);
+    const Q = Math.round(Math.sin(phase) * 30000);
+    dv.setInt16(p, I, true);
+    p += 2;
+    dv.setInt16(p, Q, true);
+    p += 2;
+  }
+  return new Uint8Array(buf);
+}
+
+// SigMF v1.0.0 — kompleks IQ verisi + JSON metadata
+// Referans: https://github.com/sigmf/SigMF/blob/main/sigmf-spec.md
+function makeSigMF_data_QPSK() {
+  // 4096 samples, cf32 little-endian (en yaygın SigMF tipi)
+  const N = 4096;
+  const sps = 16;
+  const buf = new ArrayBuffer(N * 8);
+  const dv = new DataView(buf);
+  let p = 0;
+  for (let n = 0; n < N; n++) {
+    const sym = Math.floor(n / sps);
+    const I_sym = sym * 2654435761 & 1 ? 1 : -1;
+    const Q_sym = sym * 2246822519 & 1 ? 1 : -1;
+    const t = n % sps / sps;
+    const pulse = 0.5 * (1 - Math.cos(2 * Math.PI * t));
+    const I = I_sym * pulse + (Math.random() - 0.5) * 0.08;
+    const Q = Q_sym * pulse + (Math.random() - 0.5) * 0.08;
+    dv.setFloat32(p, I, true);
+    p += 4;
+    dv.setFloat32(p, Q, true);
+    p += 4;
+  }
+  return new Uint8Array(buf);
+}
+function makeSigMF_meta_QPSK() {
+  // SigMF v1.0.0 metadata JSON
+  const obj = {
+    "global": {
+      "core:datatype": "cf32_le",
+      "core:sample_rate": 2000000,
+      "core:hw": "Synthetic generator (Veri Atlası)",
+      "core:author": "Veri Atlası örnek dosya",
+      "core:version": "1.0.0",
+      "core:description": "Synthetic QPSK signal, 8 samples/symbol, raised-cosine-ish pulse shape, 4096 samples total."
+    },
+    "captures": [{
+      "core:sample_start": 0,
+      "core:frequency": 433920000,
+      "core:datetime": "2025-01-15T12:00:00Z"
+    }],
+    "annotations": [{
+      "core:sample_start": 0,
+      "core:sample_count": 4096,
+      "core:label": "QPSK transmission"
+    }]
+  };
+  return JSON.stringify(obj, null, 2);
 }
 function detectNumericColumns(rows) {
   if (!rows.length) return [];
@@ -1447,185 +2037,10 @@ function ChartCard({
     }
   };
   const escapeXml = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const chartToSVG = c => {
-    const w = Math.round(c.width);
-    const h = Math.round(c.height);
-    const xs = c.scales.x;
-    const ys = c.scales.y;
-    const ca = c.chartArea;
-    const parts = [];
-    parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" font-family="${escapeXml(FONT_SANS)}">`);
-    parts.push(`<rect width="${w}" height="${h}" fill="${theme.bgChart}"/>`);
-    ys.ticks.forEach(tk => {
-      const y = ys.getPixelForValue(tk.value);
-      parts.push(`<line x1="${ca.left}" y1="${y.toFixed(2)}" x2="${ca.right}" y2="${y.toFixed(2)}" stroke="${theme.grid}" stroke-width="1"/>`);
-    });
-    xs.ticks.forEach(tk => {
-      const x = xs.getPixelForValue(tk.value);
-      parts.push(`<line x1="${x.toFixed(2)}" y1="${ca.top}" x2="${x.toFixed(2)}" y2="${ca.bottom}" stroke="${theme.grid}" stroke-width="1"/>`);
-    });
-    parts.push(`<defs><clipPath id="ca-clip"><rect x="${ca.left}" y="${ca.top}" width="${(ca.right - ca.left).toFixed(2)}" height="${(ca.bottom - ca.top).toFixed(2)}"/></clipPath></defs>`);
-    parts.push(`<g clip-path="url(#ca-clip)">`);
-    c.data.datasets.forEach((ds, di) => {
-      const meta = c.getDatasetMeta(di);
-      if (meta.hidden) return;
-      const pts = meta.data;
-      if (!pts || pts.length === 0) return;
-      let d = '';
-      for (let i = 0; i < pts.length; i++) {
-        const p = pts[i];
-        if (!isFinite(p.x) || !isFinite(p.y)) continue;
-        if (d === '') {
-          d += `M ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
-        } else {
-          const prev = pts[i - 1];
-          if (isFinite(prev.cp2x) && isFinite(p.cp1x)) {
-            d += ` C ${prev.cp2x.toFixed(2)} ${prev.cp2y.toFixed(2)}, ${p.cp1x.toFixed(2)} ${p.cp1y.toFixed(2)}, ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
-          } else {
-            d += ` L ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
-          }
-        }
-      }
-      const stroke = ds.borderColor || '#000';
-      const sw = ds.borderWidth || 2;
-      parts.push(`<path d="${d}" fill="none" stroke="${escapeXml(stroke)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`);
-      const pr = ds.pointRadius;
-      if (pr && pr > 0 && pts.length <= 200) {
-        const fill = ds.pointBackgroundColor || ds.borderColor;
-        const border = ds.pointBorderColor || theme.bgChart;
-        const bw = ds.pointBorderWidth != null ? ds.pointBorderWidth : 1.5;
-        for (const p of pts) {
-          if (!isFinite(p.x) || !isFinite(p.y)) continue;
-          parts.push(`<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${pr}" fill="${escapeXml(fill)}" stroke="${escapeXml(border)}" stroke-width="${bw}"/>`);
-        }
-      }
-    });
-    parts.push(`</g>`);
-
-    // ─── Tick label'ları: Chart.js'in iç _labelItems verisinden direkt ──
-    // Bu array her label için final render bilgisini içerir (rotation, anchor,
-    // baseline, font, translation). Ekrandaki yatış SVG'ye birebir geçer.
-    const renderTickLabels = scale => {
-      const items = scale._labelItems;
-      if (!items || !Array.isArray(items) || items.length === 0) return null;
-      const out = [];
-      items.forEach(item => {
-        if (!item) return;
-        const opts = item.options || {};
-        const trans = opts.translation || [0, 0];
-        const tx = trans[0],
-          ty = trans[1];
-        const anchor = opts.textAlign === 'center' ? 'middle' : opts.textAlign === 'right' ? 'end' : 'start';
-        const baseline = opts.textBaseline === 'middle' ? 'central' : opts.textBaseline === 'top' ? 'hanging' : opts.textBaseline === 'bottom' ? 'text-after-edge' : 'alphabetic';
-        const rotDeg = (opts.rotation || 0) * 180 / Math.PI;
-        const font = item.font || {};
-        const fontFamily = font.family || FONT_MONO;
-        const fontSize = font.size || 10;
-        const fontStyle = font.style || '';
-        const fontWeight = font.weight || '';
-        const color = opts.color || theme.inkSoft;
-        const textOffset = item.textOffset || 0;
-        const lbl = item.label;
-        const labels = Array.isArray(lbl) ? lbl : [lbl];
-        labels.forEach((line, li) => {
-          const lineH = fontSize * 1.2;
-          const cx = tx + textOffset;
-          const cy = ty + li * lineH;
-          const transform = rotDeg !== 0 ? ` transform="rotate(${rotDeg.toFixed(3)} ${tx.toFixed(2)} ${ty.toFixed(2)})"` : '';
-          const styleAttr = fontStyle === 'italic' ? ` font-style="italic"` : '';
-          const weightAttr = fontWeight && fontWeight !== 'normal' ? ` font-weight="${fontWeight}"` : '';
-          out.push(`<text x="${cx.toFixed(2)}" y="${cy.toFixed(2)}" text-anchor="${anchor}" dominant-baseline="${baseline}" font-family="${escapeXml(fontFamily)}" font-size="${fontSize}"${styleAttr}${weightAttr} fill="${escapeXml(color)}"${transform}>${escapeXml(line)}</text>`);
-        });
-      });
-      return out.join('\n');
-    };
-    const xLabels = renderTickLabels(xs);
-    if (xLabels) {
-      parts.push(xLabels);
-    } else {
-      // Fallback: _labelItems yoksa düz yatay
-      xs.ticks.forEach(tk => {
-        const x = xs.getPixelForValue(tk.value);
-        const lbl = tk.label != null ? tk.label : tk.value;
-        const labels = Array.isArray(lbl) ? lbl : [lbl];
-        labels.forEach((line, li) => {
-          parts.push(`<text x="${x.toFixed(2)}" y="${(ca.bottom + 14 + li * 12).toFixed(2)}" text-anchor="middle" font-family="${escapeXml(FONT_MONO)}" font-size="10" fill="${theme.inkSoft}">${escapeXml(line)}</text>`);
-        });
-      });
-    }
-    const yLabels = renderTickLabels(ys);
-    if (yLabels) {
-      parts.push(yLabels);
-    } else {
-      ys.ticks.forEach(tk => {
-        const y = ys.getPixelForValue(tk.value);
-        const lbl = tk.label != null ? tk.label : tk.value;
-        parts.push(`<text x="${(ca.left - 8).toFixed(2)}" y="${(y + 3.5).toFixed(2)}" text-anchor="end" font-family="${escapeXml(FONT_MONO)}" font-size="10" fill="${theme.inkSoft}">${escapeXml(lbl)}</text>`);
-      });
-    }
-    // ─── Eksen başlıkları: scale geometrisinden hesapla ──────────
-    // Chart.js: x bottom title cy = scale.bottom - padding.bottom - size/2 (canvas
-    // textBaseline=middle). y left title cx = scale.left + padding.left + size/2.
-    const readPad = (pad, key, fallback) => {
-      if (pad && typeof pad === 'object') {
-        if (pad[key] != null) return pad[key];
-        const axisKey = key === 'left' || key === 'right' ? 'x' : 'y';
-        if (pad[axisKey] != null) return pad[axisKey];
-        return 0;
-      }
-      return typeof pad === 'number' ? pad : fallback;
-    };
-    const xTitleOpt = xs.options && xs.options.title;
-    if (xTitleOpt && xTitleOpt.display && xTitleOpt.text) {
-      const tf = xTitleOpt.font || {};
-      const tSize = tf.size || 12;
-      const tStyle = tf.style || '';
-      const tColor = xTitleOpt.color || theme.inkSoft;
-      const padBot = readPad(xTitleOpt.padding, 'bottom', 4);
-      const cx = (ca.left + ca.right) / 2;
-      const cy = xs.bottom - padBot - tSize / 2;
-      const styleAttr = tStyle === 'italic' ? ' font-style="italic"' : '';
-      parts.push(`<text x="${cx.toFixed(2)}" y="${cy.toFixed(2)}" text-anchor="middle" dominant-baseline="central" font-family="${escapeXml(FONT_SERIF)}"${styleAttr} font-size="${tSize}" fill="${escapeXml(tColor)}">${escapeXml(xTitleOpt.text)}</text>`);
-    }
-    const yTitleOpt = ys.options && ys.options.title;
-    if (yTitleOpt && yTitleOpt.display && yTitleOpt.text) {
-      const tf = yTitleOpt.font || {};
-      const tSize = tf.size || 12;
-      const tStyle = tf.style || '';
-      const tColor = yTitleOpt.color || theme.inkSoft;
-      const padLeft = readPad(yTitleOpt.padding, 'left', 4);
-      const cx = ys.left + padLeft + tSize / 2;
-      const cy = (ca.top + ca.bottom) / 2;
-      const styleAttr = tStyle === 'italic' ? ' font-style="italic"' : '';
-      parts.push(`<text x="${cx.toFixed(2)}" y="${cy.toFixed(2)}" text-anchor="middle" dominant-baseline="central" font-family="${escapeXml(FONT_SERIF)}"${styleAttr} font-size="${tSize}" fill="${escapeXml(tColor)}" transform="rotate(-90 ${cx.toFixed(2)} ${cy.toFixed(2)})">${escapeXml(yTitleOpt.text)}</text>`);
-    }
-    const lg = c.legend;
-    if (lg && lg.legendItems && lg.legendHitBoxes) {
-      const lblOpts = c.options.plugins && c.options.plugins.legend && c.options.plugins.legend.labels || {};
-      const bw = lblOpts.boxWidth || 14;
-      const bh = lblOpts.boxHeight || 14;
-      const fSize = lblOpts.font && lblOpts.font.size || 11;
-      const fFam = lblOpts.font && lblOpts.font.family || FONT_MONO;
-      for (let i = 0; i < lg.legendItems.length; i++) {
-        const it = lg.legendItems[i];
-        const hb = lg.legendHitBoxes[i];
-        if (!hb || it.hidden) continue;
-        const swX = hb.left;
-        const swY = hb.top + (hb.height - bh) / 2;
-        const color = it.fillStyle || it.strokeStyle || '#000';
-        parts.push(`<rect x="${swX.toFixed(2)}" y="${swY.toFixed(2)}" width="${bw}" height="${bh}" rx="3" ry="3" fill="${escapeXml(color)}"/>`);
-        const txX = hb.left + bw + 4;
-        const txY = hb.top + hb.height / 2;
-        parts.push(`<text x="${txX.toFixed(2)}" y="${txY.toFixed(2)}" dominant-baseline="central" font-family="${escapeXml(fFam)}" font-size="${fSize}" fill="${theme.legendText}">${escapeXml(it.text)}</text>`);
-      }
-    }
-    parts.push(`</svg>`);
-    return parts.join('\n');
-  };
   const exportSVG = () => {
     if (!chartInstanceRef.current) return;
     try {
-      const svgString = chartToSVG(chartInstanceRef.current);
+      const svgString = buildChartSVG(chartInstanceRef.current, theme);
       const blob = new Blob([svgString], {
         type: 'image/svg+xml;charset=utf-8'
       });
@@ -2265,25 +2680,53 @@ function SmithChartView({
       onSetMarker(s.frequencies[hover.di]);
     }
   }
-  function handleWheel(e) {
-    e.preventDefault();
-    const loc = clientToLocal(e.clientX, e.clientY);
-    if (!loc) return;
-    const factor = e.deltaY < 0 ? 1.2 : 1 / 1.2;
-    setView(v => {
-      const newScale = Math.max(0.5, Math.min(40, v.scale * factor));
-      const newHalf = baseHalf / newScale;
-      const newVbSize = 2 * newHalf;
-      // İmleç pozisyonu Γ uzayında sabit kalsın
-      const newVbX = loc.gx - loc.px / loc.rect.width * newVbSize;
-      const newVbY = -loc.gy - loc.py / loc.rect.height * newVbSize;
-      return {
-        cx: newVbX + newHalf,
-        cy: newVbY + newHalf,
-        scale: newScale
-      };
-    });
-  }
+  // React onWheel passive listener attach ettiği için preventDefault çalışmaz
+  // (sayfa Smith üzerinde tekerlek çevirirken kayar). Çözüm: native addEventListener
+  // ile { passive: false } şartında attach. Hem SVG'ye hem dış container'a — SVG
+  // null/early-return durumunda da container yakalasın diye.
+  const containerRef = useRef(null);
+  useEffect(() => {
+    const els = [svgRef.current, containerRef.current].filter(Boolean);
+    if (els.length === 0) return;
+    function nativeWheelHandler(e) {
+      // Smith chart üzerinde herhangi bir yerde wheel → sayfa scroll'u engelle
+      e.preventDefault();
+      e.stopPropagation();
+      const svg = svgRef.current;
+      if (!svg) return;
+      const rect = svg.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      // Mouse SVG dışındaysa (örn. container'ın boş alanı), zoom uygulama
+      if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return;
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      const factor = e.deltaY < 0 ? 1.2 : 1 / 1.2;
+      setView(v => {
+        const oldHalf = baseHalf / v.scale;
+        const oldVbSize = 2 * oldHalf;
+        const oldVbX = -oldHalf + v.cx;
+        const oldVbY = -oldHalf + v.cy;
+        // İmlecin Γ uzayındaki konumu sabit kalsın
+        const gx = px / rect.width * oldVbSize + oldVbX;
+        const gy = py / rect.height * oldVbSize + oldVbY;
+        const newScale = Math.max(0.5, Math.min(40, v.scale * factor));
+        const newHalf = baseHalf / newScale;
+        const newVbSize = 2 * newHalf;
+        const newVbX = gx - px / rect.width * newVbSize;
+        const newVbY = gy - py / rect.height * newVbSize;
+        return {
+          cx: newVbX + newHalf,
+          cy: newVbY + newHalf,
+          scale: newScale
+        };
+      });
+    }
+    els.forEach(el => el.addEventListener('wheel', nativeWheelHandler, {
+      passive: false
+    }));
+    return () => els.forEach(el => el.removeEventListener('wheel', nativeWheelHandler));
+  }, [reflectionSeries.length]); // SVG mount/unmount olunca re-attach
+
   function resetView() {
     setView({
       cx: 0,
@@ -2351,6 +2794,7 @@ function SmithChartView({
   const markerR2 = Math.max(0.007, 0.018 / view.scale);
   const hoverR = Math.max(0.012, 0.030 / view.scale);
   return /*#__PURE__*/React.createElement("div", {
+    ref: containerRef,
     style: {
       position: 'relative',
       width: '100%',
@@ -2375,7 +2819,6 @@ function SmithChartView({
     onMouseDown: handleMouseDown,
     onMouseUp: handleMouseUp,
     onMouseLeave: handleMouseLeave,
-    onWheel: handleWheel,
     onClick: handleClick
   }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("clipPath", {
     id: "smith-clip"
@@ -3002,127 +3445,38 @@ function SParamChartCard({
     }
   };
   const escapeXml = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
-  // SParam için chartToSVG — CsvPage'le ortak mantık, kısaltılmış sürüm
   const exportSVG = () => {
-    if (!chartInstanceRef.current) return;
+    if (!chartInstanceRef.current || viewMode === 'smith') return;
     try {
-      const c = chartInstanceRef.current;
-      const w = Math.round(c.width);
-      const h = Math.round(c.height);
-      const xs = c.scales.x;
-      const ys = c.scales.y;
-      const ca = c.chartArea;
-      const parts = [];
-      parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" font-family="${escapeXml(FONT_SANS)}">`);
-      parts.push(`<rect width="${w}" height="${h}" fill="${theme.bgChart}"/>`);
-      ys.ticks.forEach(tk => {
-        const y = ys.getPixelForValue(tk.value);
-        parts.push(`<line x1="${ca.left}" y1="${y.toFixed(2)}" x2="${ca.right}" y2="${y.toFixed(2)}" stroke="${theme.grid}" stroke-width="1"/>`);
-      });
-      xs.ticks.forEach(tk => {
-        const x = xs.getPixelForValue(tk.value);
-        parts.push(`<line x1="${x.toFixed(2)}" y1="${ca.top}" x2="${x.toFixed(2)}" y2="${ca.bottom}" stroke="${theme.grid}" stroke-width="1"/>`);
-      });
-      parts.push(`<defs><clipPath id="ca-clip-sp"><rect x="${ca.left}" y="${ca.top}" width="${(ca.right - ca.left).toFixed(2)}" height="${(ca.bottom - ca.top).toFixed(2)}"/></clipPath></defs>`);
-      parts.push(`<g clip-path="url(#ca-clip-sp)">`);
-      c.data.datasets.forEach((ds, di) => {
-        const meta = c.getDatasetMeta(di);
-        if (meta.hidden) return;
-        const pts = meta.data;
-        if (!pts || pts.length === 0) return;
-        let d = '';
-        for (let i = 0; i < pts.length; i++) {
-          const p = pts[i];
-          if (!isFinite(p.x) || !isFinite(p.y)) continue;
-          if (d === '') d += `M ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;else {
-            const prev = pts[i - 1];
-            if (isFinite(prev.cp2x) && isFinite(p.cp1x)) {
-              d += ` C ${prev.cp2x.toFixed(2)} ${prev.cp2y.toFixed(2)}, ${p.cp1x.toFixed(2)} ${p.cp1y.toFixed(2)}, ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
-            } else d += ` L ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
-          }
-        }
-        parts.push(`<path d="${d}" fill="none" stroke="${escapeXml(ds.borderColor)}" stroke-width="${ds.borderWidth || 2}" stroke-linecap="round" stroke-linejoin="round"/>`);
-        if (ds.pointRadius && ds.pointRadius > 0 && pts.length <= 200) {
-          for (const p of pts) {
-            if (!isFinite(p.x) || !isFinite(p.y)) continue;
-            parts.push(`<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${ds.pointRadius}" fill="${escapeXml(ds.borderColor)}" stroke="${theme.bgChart}" stroke-width="1.2"/>`);
-          }
-        }
-      });
-      parts.push(`</g>`);
-      // Tick labels (rotation aware)
-      const renderTickLabels = scale => {
-        const items = scale._labelItems;
-        if (!items || !Array.isArray(items)) return '';
-        const out = [];
-        items.forEach(item => {
-          if (!item) return;
-          const opts = item.options || {};
-          const trans = opts.translation || [0, 0];
-          const tx = trans[0],
-            ty = trans[1];
-          const anchor = opts.textAlign === 'center' ? 'middle' : opts.textAlign === 'right' ? 'end' : 'start';
-          const baseline = opts.textBaseline === 'middle' ? 'central' : opts.textBaseline === 'top' ? 'hanging' : 'alphabetic';
-          const rotDeg = (opts.rotation || 0) * 180 / Math.PI;
-          const font = item.font || {};
-          const fontFamily = font.family || FONT_MONO;
-          const fontSize = font.size || 10;
-          const color = opts.color || theme.inkSoft;
-          const lbl = item.label;
-          const labels = Array.isArray(lbl) ? lbl : [lbl];
-          labels.forEach((line, li) => {
-            const cy = ty + li * fontSize * 1.2;
-            const transform = rotDeg !== 0 ? ` transform="rotate(${rotDeg.toFixed(2)} ${tx.toFixed(2)} ${ty.toFixed(2)})"` : '';
-            out.push(`<text x="${tx.toFixed(2)}" y="${cy.toFixed(2)}" text-anchor="${anchor}" dominant-baseline="${baseline}" font-family="${escapeXml(fontFamily)}" font-size="${fontSize}" fill="${escapeXml(color)}"${transform}>${escapeXml(line)}</text>`);
-          });
-        });
-        return out.join('\n');
-      };
-      parts.push(renderTickLabels(xs));
-      parts.push(renderTickLabels(ys));
-      // Eksen başlıkları
-      const xT = xs.options.title;
-      if (xT && xT.display && xT.text) {
-        const tSize = xT.font && xT.font.size || 12;
-        const padBot = typeof xT.padding === 'number' ? xT.padding : 4;
-        const cx = (ca.left + ca.right) / 2;
-        const cy = xs.bottom - padBot - tSize / 2;
-        parts.push(`<text x="${cx.toFixed(2)}" y="${cy.toFixed(2)}" text-anchor="middle" dominant-baseline="central" font-family="${escapeXml(FONT_SERIF)}" font-style="italic" font-size="${tSize}" fill="${escapeXml(theme.inkSoft)}">${escapeXml(xT.text)}</text>`);
-      }
-      const yT = ys.options.title;
-      if (yT && yT.display && yT.text) {
-        const tSize = yT.font && yT.font.size || 12;
-        const padLeft = typeof yT.padding === 'number' ? yT.padding : 4;
-        const cx = ys.left + padLeft + tSize / 2;
-        const cy = (ca.top + ca.bottom) / 2;
-        parts.push(`<text x="${cx.toFixed(2)}" y="${cy.toFixed(2)}" text-anchor="middle" dominant-baseline="central" font-family="${escapeXml(FONT_SERIF)}" font-style="italic" font-size="${tSize}" fill="${escapeXml(theme.inkSoft)}" transform="rotate(-90 ${cx.toFixed(2)} ${cy.toFixed(2)})">${escapeXml(yT.text)}</text>`);
-      }
-      // Legend
-      const lg = c.legend;
-      if (lg && lg.legendItems && lg.legendHitBoxes) {
-        const lblOpts = c.options.plugins && c.options.plugins.legend && c.options.plugins.legend.labels || {};
-        const bw = lblOpts.boxWidth || 12;
-        const bh = lblOpts.boxHeight || 12;
-        const fSize = lblOpts.font && lblOpts.font.size || 10;
-        const fFam = lblOpts.font && lblOpts.font.family || FONT_MONO;
-        for (let i = 0; i < lg.legendItems.length; i++) {
-          const it = lg.legendItems[i];
-          const hb = lg.legendHitBoxes[i];
-          if (!hb || it.hidden) continue;
-          const swY = hb.top + (hb.height - bh) / 2;
-          const color = it.fillStyle || it.strokeStyle || '#000';
-          parts.push(`<rect x="${hb.left.toFixed(2)}" y="${swY.toFixed(2)}" width="${bw}" height="${bh}" rx="3" ry="3" fill="${escapeXml(color)}"/>`);
-          parts.push(`<text x="${(hb.left + bw + 4).toFixed(2)}" y="${(hb.top + hb.height / 2).toFixed(2)}" dominant-baseline="central" font-family="${escapeXml(fFam)}" font-size="${fSize}" fill="${escapeXml(theme.legendText)}">${escapeXml(it.text)}</text>`);
-        }
-      }
-      parts.push(`</svg>`);
-      const blob = new Blob([parts.join('\n')], {
+      const svgString = buildChartSVG(chartInstanceRef.current, theme);
+      const blob = new Blob([svgString], {
         type: 'image/svg+xml;charset=utf-8'
       });
       downloadBlob(blob, `${safeFilename(title)}_${viewMode}.svg`);
     } catch (e) {
       console.error('SVG export error:', e);
+      alert(t('svg_fail') + e.message);
+    }
+  };
+
+  // Smith chart için ayrı SVG export — DOM'daki Smith SVG'yi serialize et
+  const exportSmithSVG = () => {
+    if (viewMode !== 'smith') return;
+    try {
+      // Smith SVG'yi DOM'dan bul (svgRef MiniChart canvasRef gibi yok, ama Smith
+      // kendi içinde svgRef tutar — bunu prop olarak çıkarmak yerine, container
+      // içindeki ilk <svg>'yi alıyoruz)
+      const container = document.activeElement?.closest('[data-sparam-card]');
+      const svgEl = container?.querySelector('svg[viewBox*="1.18"]') || document.querySelector('[data-sparam-card] svg[viewBox*="1.18"]');
+      if (!svgEl) return;
+      const serial = new XMLSerializer().serializeToString(svgEl);
+      // Background rect ekle (PNG export'un yaptığı gibi)
+      const blob = new Blob([serial], {
+        type: 'image/svg+xml;charset=utf-8'
+      });
+      downloadBlob(blob, `${safeFilename(title)}_smith.svg`);
+    } catch (e) {
+      console.error('Smith SVG export error:', e);
       alert(t('svg_fail') + e.message);
     }
   };
@@ -3284,24 +3638,250 @@ function useHashRoute() {
   }, []);
   return [route, nav];
 }
+function buildChartSVG(c, theme) {
+  const w = Math.round(c.width);
+  const h = Math.round(c.height);
+  const xs = c.scales.x;
+  const ys = c.scales.y;
+  const ca = c.chartArea;
+  const parts = [];
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" font-family="${escapeXml(FONT_SANS)}">`);
+  parts.push(`<rect width="${w}" height="${h}" fill="${theme.bgChart}"/>`);
+  ys.ticks.forEach(tk => {
+    const y = ys.getPixelForValue(tk.value);
+    parts.push(`<line x1="${ca.left}" y1="${y.toFixed(2)}" x2="${ca.right}" y2="${y.toFixed(2)}" stroke="${theme.grid}" stroke-width="1"/>`);
+  });
+  xs.ticks.forEach(tk => {
+    const x = xs.getPixelForValue(tk.value);
+    parts.push(`<line x1="${x.toFixed(2)}" y1="${ca.top}" x2="${x.toFixed(2)}" y2="${ca.bottom}" stroke="${theme.grid}" stroke-width="1"/>`);
+  });
+  parts.push(`<defs><clipPath id="ca-clip"><rect x="${ca.left}" y="${ca.top}" width="${(ca.right - ca.left).toFixed(2)}" height="${(ca.bottom - ca.top).toFixed(2)}"/></clipPath></defs>`);
+  parts.push(`<g clip-path="url(#ca-clip)">`);
+  c.data.datasets.forEach((ds, di) => {
+    const meta = c.getDatasetMeta(di);
+    if (meta.hidden) return;
+    const pts = meta.data;
+    if (!pts || pts.length === 0) return;
+    let d = '';
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      if (!isFinite(p.x) || !isFinite(p.y)) continue;
+      if (d === '') {
+        d += `M ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+      } else {
+        const prev = pts[i - 1];
+        if (isFinite(prev.cp2x) && isFinite(p.cp1x)) {
+          d += ` C ${prev.cp2x.toFixed(2)} ${prev.cp2y.toFixed(2)}, ${p.cp1x.toFixed(2)} ${p.cp1y.toFixed(2)}, ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+        } else {
+          d += ` L ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+        }
+      }
+    }
+    const stroke = ds.borderColor || '#000';
+    const sw = ds.borderWidth || 2;
+    parts.push(`<path d="${d}" fill="none" stroke="${escapeXml(stroke)}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`);
+    const pr = ds.pointRadius;
+    if (pr && pr > 0 && pts.length <= 200) {
+      const fill = ds.pointBackgroundColor || ds.borderColor;
+      const border = ds.pointBorderColor || theme.bgChart;
+      const bw = ds.pointBorderWidth != null ? ds.pointBorderWidth : 1.5;
+      for (const p of pts) {
+        if (!isFinite(p.x) || !isFinite(p.y)) continue;
+        parts.push(`<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${pr}" fill="${escapeXml(fill)}" stroke="${escapeXml(border)}" stroke-width="${bw}"/>`);
+      }
+    }
+  });
+  parts.push(`</g>`);
+
+  // ─── Tick label'ları: Chart.js'in iç _labelItems verisinden direkt ──
+  // Bu array her label için final render bilgisini içerir (rotation, anchor,
+  // baseline, font, translation). Ekrandaki yatış SVG'ye birebir geçer.
+  const renderTickLabels = scale => {
+    const items = scale._labelItems;
+    if (!items || !Array.isArray(items) || items.length === 0) return null;
+    const out = [];
+    items.forEach(item => {
+      if (!item) return;
+      const opts = item.options || {};
+      const trans = opts.translation || [0, 0];
+      const tx = trans[0],
+        ty = trans[1];
+      const anchor = opts.textAlign === 'center' ? 'middle' : opts.textAlign === 'right' ? 'end' : 'start';
+      const baseline = opts.textBaseline === 'middle' ? 'central' : opts.textBaseline === 'top' ? 'hanging' : opts.textBaseline === 'bottom' ? 'text-after-edge' : 'alphabetic';
+      const rotDeg = (opts.rotation || 0) * 180 / Math.PI;
+      const font = item.font || {};
+      const fontFamily = font.family || FONT_MONO;
+      const fontSize = font.size || 10;
+      const fontStyle = font.style || '';
+      const fontWeight = font.weight || '';
+      const color = opts.color || theme.inkSoft;
+      const textOffset = item.textOffset || 0;
+      const lbl = item.label;
+      const labels = Array.isArray(lbl) ? lbl : [lbl];
+      labels.forEach((line, li) => {
+        const lineH = fontSize * 1.2;
+        const cx = tx + textOffset;
+        const cy = ty + li * lineH;
+        const transform = rotDeg !== 0 ? ` transform="rotate(${rotDeg.toFixed(3)} ${tx.toFixed(2)} ${ty.toFixed(2)})"` : '';
+        const styleAttr = fontStyle === 'italic' ? ` font-style="italic"` : '';
+        const weightAttr = fontWeight && fontWeight !== 'normal' ? ` font-weight="${fontWeight}"` : '';
+        out.push(`<text x="${cx.toFixed(2)}" y="${cy.toFixed(2)}" text-anchor="${anchor}" dominant-baseline="${baseline}" font-family="${escapeXml(fontFamily)}" font-size="${fontSize}"${styleAttr}${weightAttr} fill="${escapeXml(color)}"${transform}>${escapeXml(line)}</text>`);
+      });
+    });
+    return out.join('\n');
+  };
+  const xLabels = renderTickLabels(xs);
+  if (xLabels) {
+    parts.push(xLabels);
+  } else {
+    // Fallback: _labelItems yoksa düz yatay
+    xs.ticks.forEach(tk => {
+      const x = xs.getPixelForValue(tk.value);
+      const lbl = tk.label != null ? tk.label : tk.value;
+      const labels = Array.isArray(lbl) ? lbl : [lbl];
+      labels.forEach((line, li) => {
+        parts.push(`<text x="${x.toFixed(2)}" y="${(ca.bottom + 14 + li * 12).toFixed(2)}" text-anchor="middle" font-family="${escapeXml(FONT_MONO)}" font-size="10" fill="${theme.inkSoft}">${escapeXml(line)}</text>`);
+      });
+    });
+  }
+  const yLabels = renderTickLabels(ys);
+  if (yLabels) {
+    parts.push(yLabels);
+  } else {
+    ys.ticks.forEach(tk => {
+      const y = ys.getPixelForValue(tk.value);
+      const lbl = tk.label != null ? tk.label : tk.value;
+      parts.push(`<text x="${(ca.left - 8).toFixed(2)}" y="${(y + 3.5).toFixed(2)}" text-anchor="end" font-family="${escapeXml(FONT_MONO)}" font-size="10" fill="${theme.inkSoft}">${escapeXml(lbl)}</text>`);
+    });
+  }
+  // ─── Eksen başlıkları: scale geometrisinden hesapla ──────────
+  // Chart.js: x bottom title cy = scale.bottom - padding.bottom - size/2 (canvas
+  // textBaseline=middle). y left title cx = scale.left + padding.left + size/2.
+  const readPad = (pad, key, fallback) => {
+    if (pad && typeof pad === 'object') {
+      if (pad[key] != null) return pad[key];
+      const axisKey = key === 'left' || key === 'right' ? 'x' : 'y';
+      if (pad[axisKey] != null) return pad[axisKey];
+      return 0;
+    }
+    return typeof pad === 'number' ? pad : fallback;
+  };
+  const xTitleOpt = xs.options && xs.options.title;
+  if (xTitleOpt && xTitleOpt.display && xTitleOpt.text) {
+    const tf = xTitleOpt.font || {};
+    const tSize = tf.size || 12;
+    const tStyle = tf.style || '';
+    const tColor = xTitleOpt.color || theme.inkSoft;
+    const padBot = readPad(xTitleOpt.padding, 'bottom', 4);
+    const cx = (ca.left + ca.right) / 2;
+    const cy = xs.bottom - padBot - tSize / 2;
+    const styleAttr = tStyle === 'italic' ? ' font-style="italic"' : '';
+    parts.push(`<text x="${cx.toFixed(2)}" y="${cy.toFixed(2)}" text-anchor="middle" dominant-baseline="central" font-family="${escapeXml(FONT_SERIF)}"${styleAttr} font-size="${tSize}" fill="${escapeXml(tColor)}">${escapeXml(xTitleOpt.text)}</text>`);
+  }
+  const yTitleOpt = ys.options && ys.options.title;
+  if (yTitleOpt && yTitleOpt.display && yTitleOpt.text) {
+    const tf = yTitleOpt.font || {};
+    const tSize = tf.size || 12;
+    const tStyle = tf.style || '';
+    const tColor = yTitleOpt.color || theme.inkSoft;
+    const padLeft = readPad(yTitleOpt.padding, 'left', 4);
+    const cx = ys.left + padLeft + tSize / 2;
+    const cy = (ca.top + ca.bottom) / 2;
+    const styleAttr = tStyle === 'italic' ? ' font-style="italic"' : '';
+    parts.push(`<text x="${cx.toFixed(2)}" y="${cy.toFixed(2)}" text-anchor="middle" dominant-baseline="central" font-family="${escapeXml(FONT_SERIF)}"${styleAttr} font-size="${tSize}" fill="${escapeXml(tColor)}" transform="rotate(-90 ${cx.toFixed(2)} ${cy.toFixed(2)})">${escapeXml(yTitleOpt.text)}</text>`);
+  }
+  const lg = c.legend;
+  if (lg && lg.legendItems && lg.legendHitBoxes) {
+    const lblOpts = c.options.plugins && c.options.plugins.legend && c.options.plugins.legend.labels || {};
+    const bw = lblOpts.boxWidth || 14;
+    const bh = lblOpts.boxHeight || 14;
+    const fSize = lblOpts.font && lblOpts.font.size || 11;
+    const fFam = lblOpts.font && lblOpts.font.family || FONT_MONO;
+    for (let i = 0; i < lg.legendItems.length; i++) {
+      const it = lg.legendItems[i];
+      const hb = lg.legendHitBoxes[i];
+      if (!hb || it.hidden) continue;
+      const swX = hb.left;
+      const swY = hb.top + (hb.height - bh) / 2;
+      const color = it.fillStyle || it.strokeStyle || '#000';
+      parts.push(`<rect x="${swX.toFixed(2)}" y="${swY.toFixed(2)}" width="${bw}" height="${bh}" rx="3" ry="3" fill="${escapeXml(color)}"/>`);
+      const txX = hb.left + bw + 4;
+      const txY = hb.top + hb.height / 2;
+      parts.push(`<text x="${txX.toFixed(2)}" y="${txY.toFixed(2)}" dominant-baseline="central" font-family="${escapeXml(fFam)}" font-size="${fSize}" fill="${theme.legendText}">${escapeXml(it.text)}</text>`);
+    }
+  }
+  parts.push(`</svg>`);
+  return parts.join('\n');
+}
 
 // ─── MiniChart: tekrar kullanılabilir line/scatter chart ─────
-// IQPage ve WaveformPage'in grafik blokları için. ChartCard'dan
-// daha hafif; export, label edit, normalize yok. Sadece veri çizer.
+// ─── MiniChart: gelişmiş tekrar kullanılabilir chart ─────────
+// IQ ve Waveform sayfalarının grafik blokları için. CSV ChartCard ile
+// aynı seviye: editable title/eksen başlıkları, normalize, show-points,
+// PNG/JPEG/SVG export, wheel/drag zoom, reset.
 function MiniChart({
-  title,
+  initialTitle,
   datasets,
-  xLabel,
-  yLabel,
+  initialXLabel,
+  initialYLabel,
   theme,
   t,
-  height = 240,
+  height = 280,
   yLog = false,
   isScatter = false,
-  onExport
+  baseFileName // export filename için
 }) {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
+  const [title, setTitle] = useState(initialTitle || '');
+  const [xLabel, setXLabel] = useState(initialXLabel || '');
+  const [yLabel, setYLabel] = useState(initialYLabel || '');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState(title);
+  const [normalize, setNormalize] = useState(false);
+  const [showPoints, setShowPoints] = useState(false);
+  const [showCfg, setShowCfg] = useState(false); // axis edit / settings dropdown
+
+  // initial değişirse state'i de güncelle (örnek dosyalar yüklenince)
+  useEffect(() => {
+    if (initialTitle) setTitle(initialTitle);
+  }, [initialTitle]);
+  useEffect(() => {
+    if (initialXLabel) setXLabel(initialXLabel);
+  }, [initialXLabel]);
+  useEffect(() => {
+    if (initialYLabel) setYLabel(initialYLabel);
+  }, [initialYLabel]);
+
+  // Normalize uygulanmış datasets — global max abs ile bölünür
+  const effDatasets = useMemo(() => {
+    if (!normalize) return datasets.map(ds => ({
+      ...ds,
+      pointRadius: showPoints ? 1.5 : ds.pointRadius ?? 0
+    }));
+    let globalMax = 0;
+    datasets.forEach(ds => {
+      (ds.data || []).forEach(p => {
+        const v = Math.abs(typeof p === 'number' ? p : p && p.y || 0);
+        if (v > globalMax) globalMax = v;
+      });
+    });
+    if (globalMax === 0) return datasets.map(ds => ({
+      ...ds,
+      pointRadius: showPoints ? 1.5 : ds.pointRadius ?? 0
+    }));
+    return datasets.map(ds => ({
+      ...ds,
+      data: (ds.data || []).map(p => {
+        if (typeof p === 'number') return p / globalMax;
+        return {
+          ...p,
+          y: p.y / globalMax
+        };
+      }),
+      pointRadius: showPoints ? 1.5 : ds.pointRadius ?? 0
+    }));
+  }, [datasets, normalize, showPoints]);
   useEffect(() => {
     if (!canvasRef.current) return;
     const Chart = typeof window !== 'undefined' && window.Chart || null;
@@ -3310,7 +3890,7 @@ function MiniChart({
     chartRef.current = new Chart(canvasRef.current.getContext('2d'), {
       type: isScatter ? 'scatter' : 'line',
       data: {
-        datasets
+        datasets: effDatasets
       },
       plugins: [makeBgPlugin(theme.bgChart)],
       options: {
@@ -3318,21 +3898,21 @@ function MiniChart({
         maintainAspectRatio: false,
         animation: false,
         parsing: false,
-        // {x,y} formatı, perf
         plugins: {
           legend: {
-            display: datasets.length > 1,
+            display: effDatasets.length > 1,
             position: 'top',
             labels: {
               font: {
                 family: FONT_MONO,
                 size: 10
               },
-              color: theme.inkSoft,
+              color: theme.legendText,
               padding: 10,
               boxWidth: 14,
-              boxHeight: 2,
-              usePointStyle: false
+              boxHeight: 14,
+              usePointStyle: true,
+              pointStyle: 'rectRounded'
             }
           },
           tooltip: {
@@ -3448,57 +4028,264 @@ function MiniChart({
         chartRef.current = null;
       }
     };
-  }, [datasets, xLabel, yLabel, theme, yLog, isScatter]);
+  }, [effDatasets, xLabel, yLabel, theme, yLog, isScatter]);
   function resetZoom() {
     if (chartRef.current) chartRef.current.resetZoom();
   }
-  function doExport(format) {
+  function safeName() {
+    return (baseFileName || title || 'chart').replace(/[^\w\-\.]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  }
+  function exportRaster(format) {
     if (!chartRef.current) return;
     const canvas = chartRef.current.canvas;
-    const link = document.createElement('a');
-    if (format === 'svg') {
-      // Basit: PNG'yi indir (SVG export ChartCard'da var, burada minimum)
-      format = 'png';
+    // 3× scale for high-DPI
+    const w = canvas.width,
+      h = canvas.height;
+    const scale = 3;
+    const off = document.createElement('canvas');
+    off.width = w * scale / window.devicePixelRatio;
+    off.height = h * scale / window.devicePixelRatio;
+    const ctx = off.getContext('2d');
+    ctx.fillStyle = theme.bgChart;
+    ctx.fillRect(0, 0, off.width, off.height);
+    ctx.drawImage(canvas, 0, 0, off.width, off.height);
+    off.toBlob(blob => downloadBlob(blob, `${safeName()}.${format === 'jpeg' ? 'jpg' : format}`), `image/${format}`, 0.95);
+  }
+  function exportSVG() {
+    if (!chartRef.current) return;
+    try {
+      const svgString = buildChartSVG(chartRef.current, theme);
+      const blob = new Blob([svgString], {
+        type: 'image/svg+xml;charset=utf-8'
+      });
+      downloadBlob(blob, `${safeName()}.svg`);
+    } catch (e) {
+      console.error('SVG export error:', e);
+      alert(t('svg_fail') + e.message);
     }
-    canvas.toBlob(blob => {
-      const url = URL.createObjectURL(blob);
-      link.href = url;
-      link.download = `${(title || 'chart').replace(/[^\w]/g, '_')}.${format}`;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 200);
-    }, `image/${format}`, 0.95);
+  }
+  function saveTitle() {
+    setTitle(tempTitle.trim() || initialTitle || t('default_chart_title'));
+    setEditingTitle(false);
   }
   return /*#__PURE__*/React.createElement("div", {
     className: "bg-[var(--bg-panel)] border border-[var(--border)] rounded-sm overflow-hidden"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between px-3 py-1.5 border-b border-[var(--border-soft)]"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)]",
+    className: "flex items-center justify-between px-3 py-1.5 border-b border-[var(--border-soft)] gap-2"
+  }, editingTitle ? /*#__PURE__*/React.createElement("input", {
+    value: tempTitle,
+    onChange: e => setTempTitle(e.target.value),
+    onBlur: saveTitle,
+    onKeyDown: e => {
+      if (e.key === 'Enter') saveTitle();else if (e.key === 'Escape') {
+        setTempTitle(title);
+        setEditingTitle(false);
+      }
+    },
+    autoFocus: true,
+    className: "text-[11px] uppercase tracking-[0.2em] bg-[var(--bg-input)] border border-[var(--accent)] text-[var(--ink)] px-2 py-0.5 focus:outline-none flex-1 min-w-0",
     style: {
       fontFamily: FONT_MONO
     }
-  }, title), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-1",
+  }) : /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setTempTitle(title);
+      setEditingTitle(true);
+    },
+    className: "text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] hover:text-[var(--accent)] truncate min-w-0 flex-1 text-left transition-colors",
+    style: {
+      fontFamily: FONT_MONO
+    },
+    title: t('edit_title')
+  }, title, " ", /*#__PURE__*/React.createElement("span", {
+    className: "text-[var(--ink-muted)] not-italic opacity-50"
+  }, "\u270E")), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1 flex-shrink-0",
     style: {
       fontFamily: FONT_MONO
     }
   }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowCfg(v => !v),
+    className: `text-[10px] uppercase tracking-wider px-1.5 py-0.5 transition-colors ${showCfg ? 'text-[var(--accent)]' : 'text-[var(--ink-muted)] hover:text-[var(--accent)]'}`,
+    title: t('chart_settings')
+  }, "\u2699"), /*#__PURE__*/React.createElement("button", {
     onClick: resetZoom,
     className: "text-[10px] uppercase text-[var(--ink-muted)] hover:text-[var(--accent)] px-1 py-0.5 transition-colors",
     title: t('reset_zoom')
   }, "\u27F2"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => doExport('png'),
+    onClick: () => exportRaster('png'),
     className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)] hover:text-[var(--accent)] px-1 py-0.5 transition-colors"
   }, "png"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => doExport('jpeg'),
+    onClick: () => exportRaster('jpeg'),
     className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)] hover:text-[var(--accent)] px-1 py-0.5 transition-colors"
-  }, "jpg"))), /*#__PURE__*/React.createElement("div", {
+  }, "jpg"), /*#__PURE__*/React.createElement("button", {
+    onClick: exportSVG,
+    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)] hover:text-[var(--accent)] px-1 py-0.5 transition-colors"
+  }, "svg"))), showCfg && /*#__PURE__*/React.createElement("div", {
+    className: "px-3 py-2 border-b border-[var(--border-soft)] bg-[var(--bg)] space-y-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "block"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('chart_x_label')), /*#__PURE__*/React.createElement("input", {
+    value: xLabel,
+    onChange: e => setXLabel(e.target.value),
+    className: "w-full text-xs bg-[var(--bg-input)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none px-2 py-1 rounded-sm text-[var(--ink)] mt-1",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "block"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] uppercase tracking-wider text-[var(--ink-muted)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('chart_y_label')), /*#__PURE__*/React.createElement("input", {
+    value: yLabel,
+    onChange: e => setYLabel(e.target.value),
+    className: "w-full text-xs bg-[var(--bg-input)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none px-2 py-1 rounded-sm text-[var(--ink)] mt-1",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-4 text-[10px]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "flex items-center gap-1.5 cursor-pointer"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: normalize,
+    onChange: e => setNormalize(e.target.checked),
+    className: "accent-[var(--accent)]"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "uppercase tracking-wider text-[var(--ink-soft)]"
+  }, t('chart_normalize'))), /*#__PURE__*/React.createElement("label", {
+    className: "flex items-center gap-1.5 cursor-pointer"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: showPoints,
+    onChange: e => setShowPoints(e.target.checked),
+    className: "accent-[var(--accent)]"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "uppercase tracking-wider text-[var(--ink-soft)]"
+  }, t('chart_show_points'))))), /*#__PURE__*/React.createElement("div", {
     style: {
       height,
       padding: 8
     }
   }, /*#__PURE__*/React.createElement("canvas", {
     ref: canvasRef
+  })));
+}
+
+// ─── Örnek dosya galerisi ──────────────────────────────────────
+// Her sayfada gösterilen 2-3 örnek dosyalı panel.
+// Her örnek için: indir (Blob), yükle (parser'a gönder, state'e ekle).
+function SampleGallery({
+  samples,
+  t
+}) {
+  if (!samples || samples.length === 0) return null;
+  function downloadOne(filename, content, mimeType) {
+    const blob = new Blob([content], {
+      type: mimeType || 'application/octet-stream'
+    });
+    downloadBlob(blob, filename);
+  }
+  function handleDownload(s) {
+    // Ana dosya
+    downloadOne(s.filename, s.generator(), s.mimeType);
+    // Eşli dosyalar (SigMF: data + meta) — küçük gecikme ile sırayla
+    if (s.paired) {
+      s.paired.forEach((p, idx) => {
+        setTimeout(() => downloadOne(p.filename, p.generator(), p.mimeType), 200 * (idx + 1));
+      });
+    }
+  }
+  return /*#__PURE__*/React.createElement("section", {
+    className: "border border-[var(--border-soft)] bg-[var(--bg)] p-4 rounded-sm"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-baseline justify-between mb-3 pb-2 border-b border-[var(--border-soft)]"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "text-[10px] uppercase tracking-[0.3em] text-[var(--ink-soft)]",
+    style: {
+      fontFamily: FONT_MONO
+    }
+  }, t('samples_title')), /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] italic text-[var(--ink-muted)]",
+    style: {
+      fontFamily: FONT_SERIF
+    }
+  }, t('samples_hint'))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
+  }, samples.map(s => {
+    const isBinary = !!s.binary;
+    const isPaired = !!s.paired;
+    return /*#__PURE__*/React.createElement("div", {
+      key: s.key,
+      className: "border border-[var(--border)] bg-[var(--bg-panel)] p-3 flex flex-col gap-2 hover:border-[var(--accent)] transition-colors"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-start justify-between gap-2"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "min-w-0 flex-1"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-[11px] font-semibold text-[var(--ink)] truncate",
+      style: {
+        fontFamily: FONT_MONO
+      }
+    }, s.label, isBinary && /*#__PURE__*/React.createElement("span", {
+      className: "ml-1.5 text-[8px] uppercase tracking-wider text-[var(--accent)] bg-[var(--accent-soft)] px-1 py-0.5 rounded-sm"
+    }, "BIN")), /*#__PURE__*/React.createElement("div", {
+      className: "text-[9px] uppercase tracking-[0.18em] text-[var(--accent)] mt-0.5",
+      style: {
+        fontFamily: FONT_MONO
+      }
+    }, s.format))), /*#__PURE__*/React.createElement("p", {
+      className: "text-[10px] italic leading-snug text-[var(--ink-soft)]",
+      style: {
+        fontFamily: FONT_SERIF
+      }
+    }, s.description), /*#__PURE__*/React.createElement("div", {
+      className: "text-[9px] text-[var(--ink-muted)] truncate",
+      style: {
+        fontFamily: FONT_MONO
+      },
+      title: s.filename
+    }, s.filename, isPaired && s.paired.map(p => /*#__PURE__*/React.createElement("div", {
+      key: p.filename,
+      className: "truncate",
+      title: p.filename
+    }, "+ ", p.filename))), /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-1.5 mt-auto pt-1"
+    }, s.onLoad ? /*#__PURE__*/React.createElement("button", {
+      onClick: s.onLoad,
+      className: "flex-1 text-[10px] uppercase tracking-[0.15em] px-2 py-1.5 border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--bg)] transition-colors",
+      style: {
+        fontFamily: FONT_MONO
+      },
+      title: t('samples_load_title')
+    }, t('samples_load')) : /*#__PURE__*/React.createElement("span", {
+      className: "flex-1 text-[10px] uppercase tracking-[0.15em] px-2 py-1.5 border border-[var(--border-soft)] text-[var(--ink-muted)] text-center italic",
+      style: {
+        fontFamily: FONT_MONO
+      },
+      title: t('samples_binary_only')
+    }, t('samples_inspect_only')), /*#__PURE__*/React.createElement("button", {
+      onClick: () => handleDownload(s),
+      className: "flex-1 text-[10px] uppercase tracking-[0.15em] px-2 py-1.5 border border-[var(--border-hard)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors",
+      style: {
+        fontFamily: FONT_MONO
+      },
+      title: t('samples_download_title')
+    }, "\u2193 ", t('samples_download'), isPaired ? ` (${1 + s.paired.length})` : '')));
   })));
 }
 
@@ -3519,19 +4306,79 @@ function IQPage({
   const active = iqFiles.find(f => f.id === activeId) || iqFiles[0];
   function handleFiles(fileList) {
     const arr = Array.from(fileList);
-    Promise.all(arr.map(f => f.text().then(text => {
-      try {
-        const data = parseIQData(text, f.name);
-        return {
-          ...data,
-          id: Date.now() + Math.random()
-        };
-      } catch (err) {
-        console.error('IQ parse error:', f.name, err);
-        alert(`${f.name}: ${err.message}`);
-        return null;
+    // SigMF: .sigmf-meta + .sigmf-data çiftleri eşleştir
+    const sigMetas = arr.filter(f => /\.sigmf-meta$/i.test(f.name));
+    const sigData = arr.filter(f => /\.sigmf-data$/i.test(f.name));
+    const sigMatched = new Set();
+    const sigPairs = [];
+    sigMetas.forEach(mFile => {
+      const base = mFile.name.replace(/\.sigmf-meta$/i, '');
+      const dFile = sigData.find(d => d.name.replace(/\.sigmf-data$/i, '') === base);
+      if (dFile) {
+        sigMatched.add(mFile);
+        sigMatched.add(dFile);
+        sigPairs.push({
+          mFile,
+          dFile,
+          base
+        });
       }
-    }))).then(parsed => {
+    });
+    const tasks = [];
+    // SigMF çiftleri
+    sigPairs.forEach(({
+      mFile,
+      dFile,
+      base
+    }) => {
+      tasks.push(Promise.all([mFile.text(), dFile.arrayBuffer()]).then(([metaText, dataBuf]) => {
+        try {
+          const meta = JSON.parse(metaText);
+          const data = parseSigMFData(dataBuf, meta, base);
+          return {
+            ...data,
+            id: Date.now() + Math.random()
+          };
+        } catch (err) {
+          alert(`${base}: ${err.message}`);
+          return null;
+        }
+      }));
+    });
+    // Eşleşmeyen diğer dosyalar
+    arr.filter(f => !sigMatched.has(f)).forEach(f => {
+      const ext = (f.name.split('.').pop() || '').toLowerCase();
+      const isBinary = ['cfile', 'fc32', 'c32', 'raw32', 'iq', 'sc16', 'c16', 'ci16', 'raw16', 'sc8', 'cs8', 'c8', 'ci8', 'sigmf-data', 'bin'].includes(ext);
+      if (isBinary) {
+        tasks.push(f.arrayBuffer().then(buf => {
+          try {
+            const data = parseIQBinary(buf, f.name);
+            return {
+              ...data,
+              id: Date.now() + Math.random()
+            };
+          } catch (err) {
+            alert(`${f.name}: ${err.message}`);
+            return null;
+          }
+        }));
+      } else {
+        tasks.push(f.text().then(text => {
+          try {
+            const data = parseIQData(text, f.name);
+            return {
+              ...data,
+              id: Date.now() + Math.random()
+            };
+          } catch (err) {
+            console.error('IQ parse error:', f.name, err);
+            alert(`${f.name}: ${err.message}`);
+            return null;
+          }
+        }));
+      }
+    });
+    Promise.all(tasks).then(parsed => {
       const valid = parsed.filter(Boolean);
       onIQFilesChange([...iqFiles, ...valid]);
       if (valid.length && !activeId) setActiveId(valid[0].id);
@@ -3550,14 +4397,86 @@ function IQPage({
     setDragging(false);
     handleFiles(e.dataTransfer.files);
   }
-  function loadSample() {
-    const s = {
-      ...makeSampleIQ(),
-      id: Date.now()
-    };
-    onIQFilesChange([...iqFiles, s]);
-    setActiveId(s.id);
+  // Bir text içeriği uygulamaya yükle (parser yoluyla)
+  function loadFromText(text, filename) {
+    try {
+      const data = parseIQData(text, filename);
+      const item = {
+        ...data,
+        id: Date.now() + Math.random()
+      };
+      onIQFilesChange([...iqFiles, item]);
+      setActiveId(item.id);
+    } catch (err) {
+      console.error('IQ load error:', filename, err);
+      alert(`${filename}: ${err.message}`);
+    }
   }
+  function loadSample() {
+    loadFromText(makeIQ_csv_16qam(), 'sample_16qam_8sps.csv');
+  }
+  // Örnek galerisi
+  const samples = [{
+    key: 'iq_16qam_csv',
+    label: '16-QAM baseband',
+    format: '.csv · I,Q kolonları',
+    description: '1024 örnek, 8 sps pulse-shaped 16-QAM modülasyon, fs=1 MHz. Konstelasyon diyagramında 16 nokta görülür.',
+    filename: 'iq_16qam_baseband.csv',
+    mimeType: 'text/csv;charset=utf-8',
+    generator: makeIQ_csv_16qam,
+    onLoad: () => loadFromText(makeIQ_csv_16qam(), 'iq_16qam_baseband.csv')
+  }, {
+    key: 'iq_bpsk_txt',
+    label: 'BPSK signal',
+    format: '.txt · whitespace',
+    description: '2048 örnek BPSK, 8 sps, raised-cosine darbe. Konstelasyon I-eksenine paralel iki kümeden oluşur.',
+    filename: 'iq_bpsk_8sps.txt',
+    mimeType: 'text/plain;charset=utf-8',
+    generator: makeIQ_txt_bpsk,
+    onLoad: () => loadFromText(makeIQ_txt_bpsk(), 'iq_bpsk_8sps.txt')
+  }, {
+    key: 'iq_chirp_complex',
+    label: 'Linear chirp (complex)',
+    format: '.txt · "a+bj" literal',
+    description: '2000 örnek doğrusal chirp, 10→100 kHz, fs=500 kS/s. NumPy savetxt complex formatı. Spektrum genişlemiş tepe görünür.',
+    filename: 'iq_chirp_complex.txt',
+    mimeType: 'text/plain;charset=utf-8',
+    generator: makeIQ_txt_complex_literal,
+    onLoad: () => loadFromText(makeIQ_txt_complex_literal(), 'iq_chirp_complex.txt')
+  }, {
+    key: 'iq_cfile_qpsk',
+    label: 'QPSK · GNU Radio',
+    format: '.cfile · cf32 LE binary',
+    description: 'QPSK 8 sps, 2048 örnek. GNU Radio File Source/Sink yaygın formatı: interleaved float32 little-endian. Wireshark/GNU Radio Companion ile incelenebilir.',
+    filename: 'iq_qpsk_2048.cfile',
+    mimeType: 'application/octet-stream',
+    binary: true,
+    generator: makeCfile_QPSK
+    // onLoad yok — binary text parser çözemez
+  }, {
+    key: 'iq_sc16_fm',
+    label: 'FM ton · USRP',
+    format: '.sc16 · ci16 LE binary',
+    description: 'FM modülasyonu, 5 kHz mod tonu, ±50 kHz deviasyon, fs=2 MS/s, 4096 örnek. USRP/Ettus ci16 over-the-wire formatı: interleaved int16 LE.',
+    filename: 'iq_fm_tone_4096.sc16',
+    mimeType: 'application/octet-stream',
+    binary: true,
+    generator: makeSC16_FM_tone
+  }, {
+    key: 'iq_sigmf_qpsk',
+    label: 'QPSK · SigMF',
+    format: 'SigMF v1.0.0 · data + meta',
+    description: '433.92 MHz ISM bandında QPSK, fs=2 MHz, 4096 örnek. SigMF v1.0.0: binary .sigmf-data (cf32_le) + JSON .sigmf-meta. İki dosya birlikte indirilir.',
+    filename: 'iq_qpsk_433MHz.sigmf-data',
+    mimeType: 'application/octet-stream',
+    binary: true,
+    generator: makeSigMF_data_QPSK,
+    paired: [{
+      filename: 'iq_qpsk_433MHz.sigmf-meta',
+      mimeType: 'application/json',
+      generator: makeSigMF_meta_QPSK
+    }]
+  }];
   function removeFile(id) {
     onIQFilesChange(iqFiles.filter(f => f.id !== id));
     if (activeId === id) setActiveId(null);
@@ -3568,7 +4487,6 @@ function IQPage({
       ...partial
     } : f));
   }
-
   // Hesaplamalar
   const charts = useMemo(() => {
     if (!active) return null;
@@ -3679,7 +4597,7 @@ function IQPage({
     ref: fileInputRef,
     type: "file",
     multiple: true,
-    accept: ".csv,.txt,.iq,.dat",
+    accept: ".csv,.txt,.iq,.dat,.cfile,.fc32,.c32,.raw32,.sc16,.c16,.ci16,.raw16,.sc8,.cs8,.c8,.ci8,.bin,.sigmf-meta,.sigmf-data",
     className: "hidden",
     onChange: e => {
       handleFiles(e.target.files);
@@ -3690,7 +4608,10 @@ function IQPage({
     style: {
       fontFamily: FONT_MONO
     }
-  }, t('iq_formats')))), iqFiles.length > 0 && /*#__PURE__*/React.createElement("section", {
+  }, t('iq_formats')))), /*#__PURE__*/React.createElement(SampleGallery, {
+    samples: samples,
+    t: t
+  }), iqFiles.length > 0 && /*#__PURE__*/React.createElement("section", {
     className: "space-y-2"
   }, /*#__PURE__*/React.createElement("div", {
     className: "text-[10px] uppercase tracking-[0.25em] text-[var(--ink-soft)]",
@@ -3815,7 +4736,7 @@ function IQPage({
   }, "16384"))))), /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-1 md:grid-cols-2 gap-3"
   }, /*#__PURE__*/React.createElement(MiniChart, {
-    title: t('iq_view_iq_time'),
+    initialTitle: t('iq_view_iq_time'),
     datasets: [{
       label: 'I',
       data: charts.iData,
@@ -3833,13 +4754,14 @@ function IQPage({
       pointRadius: 0,
       tension: 0
     }],
-    xLabel: `${t('iq_axis_time')} (s)`,
-    yLabel: t('iq_axis_amp'),
+    initialXLabel: `${t('iq_axis_time')} (s)`,
+    initialYLabel: t('iq_axis_amp'),
     theme: theme,
     t: t,
-    height: 240
+    height: 240,
+    baseFileName: `${active.name.replace(/\.\w+$/, '')}_iq_time`
   }), /*#__PURE__*/React.createElement(MiniChart, {
-    title: t('iq_view_magnitude'),
+    initialTitle: t('iq_view_magnitude'),
     datasets: [{
       label: '|I+jQ|',
       data: charts.magData,
@@ -3849,13 +4771,14 @@ function IQPage({
       pointRadius: 0,
       tension: 0
     }],
-    xLabel: `${t('iq_axis_time')} (s)`,
-    yLabel: t('iq_axis_amp'),
+    initialXLabel: `${t('iq_axis_time')} (s)`,
+    initialYLabel: t('iq_axis_amp'),
     theme: theme,
     t: t,
-    height: 240
+    height: 240,
+    baseFileName: `${active.name.replace(/\.\w+$/, '')}_envelope`
   }), /*#__PURE__*/React.createElement(MiniChart, {
-    title: t('iq_view_constellation'),
+    initialTitle: t('iq_view_constellation'),
     datasets: [{
       label: 'I-Q',
       data: charts.constData,
@@ -3865,14 +4788,15 @@ function IQPage({
       pointHoverRadius: 4,
       showLine: false
     }],
-    xLabel: "I",
-    yLabel: "Q",
+    initialXLabel: "I",
+    initialYLabel: "Q",
     theme: theme,
     t: t,
     height: 240,
-    isScatter: true
+    isScatter: true,
+    baseFileName: `${active.name.replace(/\.\w+$/, '')}_constellation`
   }), /*#__PURE__*/React.createElement(MiniChart, {
-    title: t('iq_view_spectrum'),
+    initialTitle: t('iq_view_spectrum'),
     datasets: [{
       label: '|FFT| (dB)',
       data: charts.fftData,
@@ -3882,11 +4806,12 @@ function IQPage({
       pointRadius: 0,
       tension: 0
     }],
-    xLabel: `${t('iq_axis_freq')} (Hz)`,
-    yLabel: t('iq_axis_psd'),
+    initialXLabel: `${t('iq_axis_freq')} (Hz)`,
+    initialYLabel: t('iq_axis_psd'),
     theme: theme,
     t: t,
-    height: 240
+    height: 240,
+    baseFileName: `${active.name.replace(/\.\w+$/, '')}_spectrum`
   }))));
 }
 
@@ -3906,19 +4831,37 @@ function WaveformPage({
   const active = wfFiles.find(f => f.id === activeId) || wfFiles[0];
   function handleFiles(fileList) {
     const arr = Array.from(fileList);
-    Promise.all(arr.map(f => f.text().then(text => {
-      try {
-        const data = parseWaveformData(text, f.name);
-        return {
-          ...data,
-          id: Date.now() + Math.random()
-        };
-      } catch (err) {
-        console.error('Waveform parse error:', f.name, err);
-        alert(`${f.name}: ${err.message}`);
-        return null;
+    const tasks = arr.map(f => {
+      const ext = (f.name.split('.').pop() || '').toLowerCase();
+      if (ext === 'wav' || ext === 'wave') {
+        return f.arrayBuffer().then(buf => {
+          try {
+            const data = parseWAV(buf, f.name);
+            return {
+              ...data,
+              id: Date.now() + Math.random()
+            };
+          } catch (err) {
+            alert(`${f.name}: ${err.message}`);
+            return null;
+          }
+        });
       }
-    }))).then(parsed => {
+      return f.text().then(text => {
+        try {
+          const data = parseWaveformData(text, f.name);
+          return {
+            ...data,
+            id: Date.now() + Math.random()
+          };
+        } catch (err) {
+          console.error('Waveform parse error:', f.name, err);
+          alert(`${f.name}: ${err.message}`);
+          return null;
+        }
+      });
+    });
+    Promise.all(tasks).then(parsed => {
       const valid = parsed.filter(Boolean);
       onWfFilesChange([...wfFiles, ...valid]);
       if (valid.length && !activeId) setActiveId(valid[0].id);
@@ -3937,14 +4880,69 @@ function WaveformPage({
     setDragging(false);
     handleFiles(e.dataTransfer.files);
   }
-  function loadSample() {
-    const s = {
-      ...makeSampleWaveform(),
-      id: Date.now()
-    };
-    onWfFilesChange([...wfFiles, s]);
-    setActiveId(s.id);
+  function loadFromText(text, filename) {
+    try {
+      const data = parseWaveformData(text, filename);
+      const item = {
+        ...data,
+        id: Date.now() + Math.random()
+      };
+      onWfFilesChange([...wfFiles, item]);
+      setActiveId(item.id);
+    } catch (err) {
+      console.error('Waveform load error:', filename, err);
+      alert(`${filename}: ${err.message}`);
+    }
   }
+  function loadSample() {
+    loadFromText(makeWF_csv_2tone(), 'wf_2tone_AM.csv');
+  }
+  const samples = [{
+    key: 'wf_2tone_csv',
+    label: '2-tone + AM',
+    format: '.csv · 2 kolon, başlıklı',
+    description: '2 kanal: (250+800 Hz harmonikler) ve 1.5 kHz taşıyıcının 5 Hz AM modülasyonu. fs=10 kHz, 2000 örnek.',
+    filename: 'wf_2tone_AM.csv',
+    mimeType: 'text/csv;charset=utf-8',
+    generator: makeWF_csv_2tone,
+    onLoad: () => loadFromText(makeWF_csv_2tone(), 'wf_2tone_AM.csv')
+  }, {
+    key: 'wf_scope_csv',
+    label: 'Osiloskop yakalama',
+    format: '.csv · zaman ekseni dahil',
+    description: 'İlk kolon zaman (otomatik algılanır), 2 kanal: kare dalga (1 kHz, taşma+ringing) ve referans sinüs (500 Hz). fs=100 kHz.',
+    filename: 'wf_scope_squarewave.csv',
+    mimeType: 'text/csv;charset=utf-8',
+    generator: makeWF_csv_scope,
+    onLoad: () => loadFromText(makeWF_csv_scope(), 'wf_scope_squarewave.csv')
+  }, {
+    key: 'wf_audio_txt',
+    label: 'Mono ses (PCM-tarz)',
+    format: '.txt · tek kolon',
+    description: '440 Hz tek ton + 880 Hz harmonik, vibrato modülasyonlu. fs=44100 Hz, 4410 örnek (0.1 s). Spektrumda iki harmonik tepe.',
+    filename: 'wf_mono_audio.txt',
+    mimeType: 'text/plain;charset=utf-8',
+    generator: makeWF_txt_audio_mono,
+    onLoad: () => loadFromText(makeWF_txt_audio_mono(), 'wf_mono_audio.txt')
+  }, {
+    key: 'wf_wav_mono',
+    label: 'Mono ton · WAV PCM16',
+    format: '.wav · RIFF/WAVE 22050 Hz',
+    description: '1 saniye, 440 Hz fundamental + 880 Hz harmonik, üstel sönüm. WAV PCM 16-bit mono. Audacity, ffmpeg, MATLAB ile incelenebilir.',
+    filename: 'wf_tone_440Hz_22050.wav',
+    mimeType: 'audio/wav',
+    binary: true,
+    generator: makeWAV_mono_440Hz
+  }, {
+    key: 'wf_wav_stereo',
+    label: 'Stereo chirp · WAV PCM16',
+    format: '.wav · RIFF/WAVE 44.1 kHz',
+    description: '2 saniye stereo. Sol kanal: 200→3000 Hz lineer chirp. Sağ kanal: 1 kHz referans tonu. PCM 16-bit, 44100 Hz.',
+    filename: 'wf_chirp_stereo_44100.wav',
+    mimeType: 'audio/wav',
+    binary: true,
+    generator: makeWAV_stereo_chirp
+  }];
   function removeFile(id) {
     onWfFilesChange(wfFiles.filter(f => f.id !== id));
     if (activeId === id) setActiveId(null);
@@ -4048,7 +5046,7 @@ function WaveformPage({
     ref: fileInputRef,
     type: "file",
     multiple: true,
-    accept: ".csv,.txt,.dat",
+    accept: ".csv,.txt,.dat,.tsv,.wav,.wave",
     className: "hidden",
     onChange: e => {
       handleFiles(e.target.files);
@@ -4059,7 +5057,10 @@ function WaveformPage({
     style: {
       fontFamily: FONT_MONO
     }
-  }, t('wf_formats')))), wfFiles.length > 0 && /*#__PURE__*/React.createElement("section", {
+  }, t('wf_formats')))), /*#__PURE__*/React.createElement(SampleGallery, {
+    samples: samples,
+    t: t
+  }), wfFiles.length > 0 && /*#__PURE__*/React.createElement("section", {
     className: "space-y-2"
   }, /*#__PURE__*/React.createElement("div", {
     className: "text-[10px] uppercase tracking-[0.25em] text-[var(--ink-soft)]",
@@ -4162,15 +5163,16 @@ function WaveformPage({
   }, ch.name)))))), /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-1 gap-3"
   }, /*#__PURE__*/React.createElement(MiniChart, {
-    title: t('wf_view_time'),
+    initialTitle: t('wf_view_time'),
     datasets: charts.channelDatasets,
-    xLabel: `${t('wf_axis_time')} (s)`,
-    yLabel: t('wf_axis_amp'),
+    initialXLabel: `${t('wf_axis_time')} (s)`,
+    initialYLabel: t('wf_axis_amp'),
     theme: theme,
     t: t,
-    height: 280
+    height: 280,
+    baseFileName: `${active.name.replace(/\.\w+$/, '')}_time`
   }), /*#__PURE__*/React.createElement(MiniChart, {
-    title: t('wf_view_spectrum'),
+    initialTitle: t('wf_view_spectrum'),
     datasets: [{
       label: `|FFT(${active.channels[activeChannel]?.name || 'ch1'})|`,
       data: charts.fftData,
@@ -4180,14 +5182,16 @@ function WaveformPage({
       pointRadius: 0,
       tension: 0
     }],
-    xLabel: `${t('wf_axis_freq')} (Hz)`,
-    yLabel: t('wf_axis_psd'),
+    initialXLabel: `${t('wf_axis_freq')} (Hz)`,
+    initialYLabel: t('wf_axis_psd'),
     theme: theme,
     t: t,
-    height: 260
+    height: 260,
+    baseFileName: `${active.name.replace(/\.\w+$/, '')}_spectrum`
   }))));
 }
 
+// ─── SampleGallery: indir + tek tıkla yükle ────────────────────
 // ─── NavTabs ───────────────────────────────────────────────────
 function NavTabs({
   route,
@@ -4436,6 +5440,51 @@ function App() {
     cableB.id = nextFileIdRef.current++;
     ingestFiles([cableA, cableB]);
   };
+
+  // Tek dosya çoklu kanal sensor log örneği
+  const loadSampleSensorLog = async () => {
+    const text = makeCSV_sensor_log();
+    const file = await parseCSV(text, 'sensor_log_5min.csv');
+    file.id = nextFileIdRef.current++;
+    ingestFiles([file]);
+  };
+
+  // CSV sayfası örnek galerisi
+  const csvSamples = useMemo(() => [{
+    key: 'csv_istanbul',
+    label: 'İstanbul iklimi 2024',
+    format: '.csv · 5 kolon, başlıklı',
+    description: 'İstanbul ve Ankara aylık iklim verileri: sıcaklık, yağış, nem, güneş saati. Çok dosyalı karşılaştırma için ideal.',
+    filename: 'istanbul_2024.csv',
+    mimeType: 'text/csv;charset=utf-8',
+    generator: () => SAMPLE_ISTANBUL,
+    onLoad: loadSampleClimate
+  }, {
+    key: 'csv_cable_s21',
+    label: 'Kablo S21 ölçümleri',
+    format: '.csv · frekans + dB',
+    description: 'İki farklı koaksiyel kablo (1m LMR-400 ve 3m RG-58) için S21 ekleme kaybı, 50 MHz – 6 GHz arası. Üst üste karşılaştırma.',
+    filename: 'kablo_A_1m_LMR400.csv',
+    mimeType: 'text/csv;charset=utf-8',
+    generator: () => makeS21CSV({
+      lengthM: 1,
+      alphaCoef: 0.0048,
+      ripplePeriodMHz: 150,
+      rippleAmp: 0.12,
+      noiseAmp: 0.04,
+      seed: 42
+    }),
+    onLoad: loadSampleS21
+  }, {
+    key: 'csv_sensor_log',
+    label: 'Çoklu sensor günlüğü',
+    format: '.csv · 5 kolon, zaman ekseni',
+    description: 'Sıcaklık, nem, basınç, ışık şiddeti 5 dakikalık kayıt. İlk kolon t(s). Çok değişkenli zaman serisi analizi.',
+    filename: 'sensor_log_5min.csv',
+    mimeType: 'text/csv;charset=utf-8',
+    generator: makeCSV_sensor_log,
+    onLoad: loadSampleSensorLog
+  }], []);
   const removeFile = id => {
     setFiles(prev => prev.filter(f => f.id !== id));
     setCharts(prev => prev.map(c => {
@@ -4542,6 +5591,57 @@ function App() {
       ingestSpFiles([result]);
     }
   }, [ingestSpFiles]);
+
+  // Touchstone örnek dosyaları — 4 farklı format/port
+  const loadSpFromText = useCallback((text, filename) => {
+    try {
+      const result = parseTouchstone(text, filename);
+      if (result) {
+        result.id = nextSpFileIdRef.current++;
+        ingestSpFiles([result]);
+      }
+    } catch (err) {
+      console.error('SParam load error:', filename, err);
+      alert(`${filename}: ${err.message}`);
+    }
+  }, [ingestSpFiles]);
+  const spSamples = useMemo(() => [{
+    key: 'sp_bandpass_MA',
+    label: 'Bandpass filtresi',
+    format: '.s2p · MA + dB',
+    description: '4. derece Butterworth bant-geçirgen, f0=1.5 GHz, BW=500 MHz. Z₀=50 Ω. Klasik 2-port ölçüm, DB format.',
+    filename: 'bp_butterworth_1.5GHz_500MHz.s2p',
+    mimeType: 'text/plain;charset=utf-8',
+    generator: makeSampleS2P,
+    onLoad: () => loadSpFromText(makeSampleS2P(), 'bp_butterworth_1.5GHz_500MHz.s2p')
+  }, {
+    key: 'sp_lpf_DB',
+    label: 'Low-pass filtresi',
+    format: '.s2p · DB',
+    description: '3. derece Butterworth alçak-geçirgen, fc=2 GHz. S21 dB cinsinden -3 dB civarında düşer, S11 reflekte yükselir.',
+    filename: 'lpf_butterworth_2GHz.s2p',
+    mimeType: 'text/plain;charset=utf-8',
+    generator: makeS2P_LPF_DB,
+    onLoad: () => loadSpFromText(makeS2P_LPF_DB(), 'lpf_butterworth_2GHz.s2p')
+  }, {
+    key: 'sp_antenna_S1P',
+    label: 'Yama anten S11',
+    format: '.s1p · MA',
+    description: 'Tek-port refleksiyon: 2.45 GHz rezonanslı patch anten, Q≈25. Smith chart\'ta klasik rezonans çukuru görülür.',
+    filename: 'antenna_patch_2.45GHz.s1p',
+    mimeType: 'text/plain;charset=utf-8',
+    generator: makeS1P_antenna_MA,
+    onLoad: () => loadSpFromText(makeS1P_antenna_MA(), 'antenna_patch_2.45GHz.s1p')
+  }, {
+    key: 'sp_cable_RI',
+    label: 'Koaksiyel kablo',
+    format: '.s2p · RI',
+    description: '1 m RG-58 kablo modeli, ~0.5 dB/m @ 1 GHz, vp=0.66c. Real/Imag formatında ham kompleks değerler — VNA tipik çıktısı.',
+    filename: 'cable_RG58_1m.s2p',
+    mimeType: 'text/plain;charset=utf-8',
+    generator: makeS2P_cable_RI,
+    onLoad: () => loadSpFromText(makeS2P_cable_RI(), 'cable_RG58_1m.s2p')
+  }], [loadSpFromText]);
   const removeSpFile = id => {
     setSpFiles(prev => prev.filter(f => f.id !== id));
     setSpSelectedSeries(prev => {
@@ -4751,7 +5851,10 @@ function App() {
       e.target.value = '';
     },
     className: "hidden"
-  }))), files.length > 0 && /*#__PURE__*/React.createElement("section", null, /*#__PURE__*/React.createElement("h2", {
+  }))), /*#__PURE__*/React.createElement(SampleGallery, {
+    samples: csvSamples,
+    t: t
+  }), files.length > 0 && /*#__PURE__*/React.createElement("section", null, /*#__PURE__*/React.createElement("h2", {
     className: "text-[10px] uppercase tracking-[0.3em] text-[var(--ink-muted)] mb-4",
     style: {
       fontFamily: FONT_MONO
@@ -4902,7 +6005,10 @@ function App() {
       e.target.value = '';
     },
     className: "hidden"
-  }))), spFiles.length > 0 && /*#__PURE__*/React.createElement("section", null, /*#__PURE__*/React.createElement("h2", {
+  }))), /*#__PURE__*/React.createElement(SampleGallery, {
+    samples: spSamples,
+    t: t
+  }), spFiles.length > 0 && /*#__PURE__*/React.createElement("section", null, /*#__PURE__*/React.createElement("h2", {
     className: "text-[10px] uppercase tracking-[0.3em] text-[var(--ink-muted)] mb-4",
     style: {
       fontFamily: FONT_MONO
