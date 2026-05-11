@@ -5777,6 +5777,14 @@ function BilgiPage({
     key: id
   }, /*#__PURE__*/React.createElement("a", {
     href: `#${id}`,
+    onClick: e => {
+      e.preventDefault();
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    },
     className: "text-[var(--ink-soft)] hover:text-[var(--accent)] transition-colors"
   }, label))))), /*#__PURE__*/React.createElement(Section, {
     id: "rf-temel",
