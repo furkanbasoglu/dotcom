@@ -3714,6 +3714,9 @@ function useHashRoute() {
   }, []);
   return [route, nav];
 }
+function escapeXml(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
 function buildChartSVG(c, theme) {
   const w = Math.round(c.width);
   const h = Math.round(c.height);
