@@ -121,6 +121,38 @@ function updateEditorMeta() {
 // ──────────────────────────────────────────────────────────────────
 // Clerk auth
 // ──────────────────────────────────────────────────────────────────
+/**
+ * Clerk publishable key formatı: pk_<env>_<base64(frontend-api-url + "$")>
+ * Örn: pk_test_cHJldHHR5LXRpZ2V... → "pretty-tiger-XX.clerk.accounts.dev$"
+ *
+ * Frontend API URL'i decode edip oradan Clerk script'ini yüklüyoruz.
+ * (jsdelivr CDN'inde @clerk/clerk-js'in .mjs build'i artık yok; resmi yol bu.)
+ */
+function decodeClerkFrontendApi(publishableKey) {
+  const parts = publishableKey.split('_');
+  if (parts.length < 3) return null;
+  const b64 = parts.slice(2).join('_');
+  try {
+    const decoded = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+    return decoded.replace(/\$$/, '');
+  } catch {
+    return null;
+  }
+}
+
+function loadScript(src, attrs = {}) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.crossOrigin = 'anonymous';
+    s.async = false;
+    for (const [k, v] of Object.entries(attrs)) s.setAttribute(k, v);
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error(`Script yüklenemedi: ${src}`));
+    document.head.appendChild(s);
+  });
+}
+
 async function initClerk() {
   if (!CONFIG.CLERK_PUBLISHABLE_KEY) {
     log('Clerk publishable key ayarlanmamış. Auth devre dışı (geliştirme modu).', 'warn');
@@ -128,25 +160,37 @@ async function initClerk() {
     return;
   }
 
-  // Clerk JS'i CDN'den dinamik yükle
-  // Clerk'in Frontend API URL'i publishable key'den türetilir
-  try {
-    // Publishable key format: pk_test_xxx veya pk_live_xxx
-    // Frontend API host: clerk.<key-encoded-domain>
-    const Clerk = (await import('https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.mjs')).Clerk;
-    clerk = new Clerk(CONFIG.CLERK_PUBLISHABLE_KEY);
-    await clerk.load({ appearance: { baseTheme: 'dark' } });
+  const frontendApi = decodeClerkFrontendApi(CONFIG.CLERK_PUBLISHABLE_KEY);
+  if (!frontendApi) {
+    log('Clerk publishable key formatı geçersiz.', 'error');
+    showSignedOutState();
+    return;
+  }
 
-    clerk.addListener(({ user, session }) => {
+  try {
+    // Resmi script tag yöntemi — Clerk kendi instance URL'inden yüklenir
+    await loadScript(
+      `https://${frontendApi}/npm/@clerk/clerk-js@5/dist/clerk.browser.js`,
+      { 'data-clerk-publishable-key': CONFIG.CLERK_PUBLISHABLE_KEY },
+    );
+
+    if (!window.Clerk) {
+      log('Clerk script yüklendi ama window.Clerk yok.', 'error');
+      showSignedOutState();
+      return;
+    }
+
+    clerk = window.Clerk;
+    await clerk.load();
+
+    clerk.addListener(({ user }) => {
       if (user) showSignedInState(user);
       else showSignedOutState();
     });
 
-    if (clerk.user) {
-      showSignedInState(clerk.user);
-    } else {
-      showSignedOutState();
-    }
+    if (clerk.user) showSignedInState(clerk.user);
+    else showSignedOutState();
+
     log('Clerk hazır.', 'ok');
   } catch (err) {
     log('Clerk yüklenemedi: ' + (err?.message || err), 'error');
