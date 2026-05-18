@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LaTeX Derleyici</title>
+  <link rel="stylesheet" href="/latex/styles.css" />
+
+  <!-- Monaco Editor (CDN, ~2MB lazy-load) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/editor/editor.main.css" />
+</head>
+<body>
+
+  <!-- Top bar: branding + auth + actions -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">λ</span>
+      <span class="title">LaTeX Derleyici</span>
+      <span class="tier-badge" id="tier-badge">Free</span>
+    </div>
+
+    <div class="actions">
+      <button id="btn-compile" class="btn btn-primary" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        Derle
+      </button>
+      <button id="btn-download" class="btn btn-ghost" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        PDF İndir
+      </button>
+    </div>
+
+    <div class="auth">
+      <div id="auth-loading" class="auth-msg">Yükleniyor…</div>
+      <div id="auth-signed-out" class="auth-section" style="display:none">
+        <button id="btn-sign-in" class="btn btn-ghost">Giriş Yap</button>
+        <button id="btn-sign-up" class="btn btn-primary-outline">Kayıt Ol</button>
+      </div>
+      <div id="auth-signed-in" class="auth-section" style="display:none">
+        <span class="user-email" id="user-email"></span>
+        <button id="btn-sign-out" class="btn btn-ghost btn-small">Çıkış</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main workspace -->
+  <main class="workspace">
+    <!-- Left: editor -->
+    <section class="panel panel-editor">
+      <div class="panel-header">
+        <span class="panel-title">main.tex</span>
+        <span class="panel-meta" id="editor-meta">— · 0 satır</span>
+      </div>
+      <div id="editor" class="editor-host"></div>
+    </section>
+
+    <!-- Right: PDF viewer -->
+    <section class="panel panel-pdf">
+      <div class="panel-header">
+        <span class="panel-title">Önizleme</span>
+        <span class="panel-meta" id="pdf-meta">PDF yok</span>
+      </div>
+      <div id="pdf-viewer" class="pdf-host">
+        <div class="placeholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <p>Derleme yapınca PDF burada görünecek.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bottom: log console -->
+  <section class="logs" id="logs-panel">
+    <div class="logs-header">
+      <span class="panel-title">Log Konsolu</span>
+      <button id="btn-clear-logs" class="btn-link">Temizle</button>
+    </div>
+    <pre id="logs-body" class="logs-body">Hoş geldin. Düzenle, "Derle" tuşuna bas.
+
+Servis henüz hazırlanma aşamasında. API çağrıları şimdilik 503 dönüyor — derleme motoru bağlanınca gerçek PDF'ler gelecek.
+</pre>
+  </section>
+
+  <!-- Clerk publishable key — Astro wrapper iframe'e query param ile geçirir -->
+  <script>
+    const _params = new URLSearchParams(location.search);
+    window.__APP_CONFIG__ = {
+      CLERK_PUBLISHABLE_KEY: _params.get('clerk_pk') || '',
+      API_BASE: '/api'
+    };
+  </script>
+
+  <!-- Monaco loader -->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+
+  <!-- PDF.js (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.min.mjs" type="module"></script>
+
+  <!-- Main app -->
+  <script type="module" src="/latex/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+
+// Clerk publishable key — public bir değer, build-time'da iframe'e query param ile geçirilir
+const CLERK_PK = import.meta.env.PUBLIC_CLERK_PUBLISHABLE_KEY || '';
+const iframeSrc = CLERK_PK
+  ? `/_latex/index.html?clerk_pk=${encodeURIComponent(CLERK_PK)}`
+  : '/_latex/index.html';
+---
+
+<!doctype html>
+<html lang="tr">
+  <head>
+    <BaseHead
+      title="LaTeX Derleyici · Furkan Başoğlu"
+      description="Tarayıcıdan LaTeX derle — Overleaf benzeri, hızlı ve ücretsiz başlangıç paketi."
+    />
+    <style>
+      html, body { margin: 0; padding: 0; height: 100%; background: #0f0f0f; }
+      .container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .info-bar {
+        padding: 0.5rem 1.5rem;
+        background: #181818;
+        border-bottom: 1px solid #2a2a2a;
+        font-size: 0.85rem;
+        color: #aaa;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .info-bar a {
+        color: #7eb8f7;
+        text-decoration: none;
+      }
+      .info-bar a:hover {
+        color: #acd4ff;
+        text-decoration: underline;
+      }
+      .badge {
+        display: inline-block;
+        background: #2a3a4a;
+        color: #a0c0e0;
+        padding: 0.1rem 0.5rem;
+        border-radius: 3px;
+        font-size: 0.75rem;
+        margin-right: 0.5rem;
+        font-weight: 600;
+      }
+      .frame {
+        flex: 1;
+        border: none;
+        width: 100%;
+        display: block;
+        background: #0f0f0f;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <Header />
+      <div class="info-bar">
+        <span class="badge">BETA</span>
+        Sorun veya öneri için <a href="/iletisim">İletişim</a> sayfasından yazabilirsin.
+      </div>
+      <iframe class="frame" src={iframeSrc} title="LaTeX Derleyici" loading="eager"></iframe>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,288 @@
+/* === Reset & base === */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #0f0f0f;
+  color: #e0e0e0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  overflow: hidden;
+}
+
+body {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* === Topbar === */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background: #141414;
+  border-bottom: 1px solid #2a2a2a;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo {
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #7eb8f7;
+  line-height: 1;
+}
+
+.title {
+  font-weight: 600;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.tier-badge {
+  background: #2a2a2a;
+  color: #aaa;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tier-badge[data-tier="pro"]   { background: #2a3a4a; color: #a0c0e0; }
+.tier-badge[data-tier="unlimited"] { background: #4a3a2a; color: #e0c0a0; }
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+  margin-right: 1rem;
+}
+
+.auth {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.auth-msg, .auth-section { display: flex; align-items: center; gap: 0.5rem; }
+
+.user-email {
+  color: #aaa;
+  font-size: 0.85rem;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* === Buttons === */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #1f1f1f;
+  border: 1px solid #333;
+  color: #e0e0e0;
+  padding: 0.45rem 0.85rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.btn:hover:not(:disabled) {
+  background: #2a2a2a;
+  border-color: #444;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #7eb8f7;
+  border-color: #7eb8f7;
+  color: #0f0f0f;
+  font-weight: 600;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #acd4ff;
+  border-color: #acd4ff;
+}
+
+.btn-primary-outline {
+  background: transparent;
+  border-color: #7eb8f7;
+  color: #7eb8f7;
+}
+.btn-primary-outline:hover:not(:disabled) {
+  background: rgba(126, 184, 247, 0.1);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: #ccc;
+}
+.btn-ghost:hover:not(:disabled) {
+  color: #fff;
+  background: #1f1f1f;
+}
+
+.btn-small {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.btn-link {
+  background: transparent;
+  border: none;
+  color: #7eb8f7;
+  font-size: 0.8rem;
+  padding: 0;
+}
+.btn-link:hover { color: #acd4ff; }
+
+/* === Workspace (editor + pdf) === */
+.workspace {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: #2a2a2a;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  background: #0f0f0f;
+  min-width: 0;
+  min-height: 0;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.8rem;
+  background: #181818;
+  border-bottom: 1px solid #2a2a2a;
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-size: 0.8rem;
+  color: #ccc;
+  font-weight: 500;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.panel-meta {
+  font-size: 0.75rem;
+  color: #777;
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* === Editor === */
+.editor-host {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* === PDF viewer === */
+.pdf-host {
+  flex: 1;
+  overflow: auto;
+  background: #1a1a1a;
+  position: relative;
+}
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #555;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 2rem;
+}
+.placeholder p { margin: 0; font-size: 0.9rem; }
+
+.pdf-canvas {
+  display: block;
+  margin: 1rem auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  max-width: 100%;
+}
+
+/* === Logs === */
+.logs {
+  display: flex;
+  flex-direction: column;
+  background: #0a0a0a;
+  border-top: 1px solid #2a2a2a;
+  max-height: 200px;
+  flex-shrink: 0;
+}
+
+.logs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.8rem;
+  background: #181818;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.logs-body {
+  margin: 0;
+  padding: 0.7rem 1rem;
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  font-size: 0.8rem;
+  color: #aaa;
+  white-space: pre-wrap;
+  overflow: auto;
+  flex: 1;
+  line-height: 1.5;
+}
+
+.logs-body .log-error { color: #f0a0a0; }
+.logs-body .log-warn  { color: #e0c0a0; }
+.logs-body .log-ok    { color: #8fda9d; }
+.logs-body .log-info  { color: #a0c0e0; }
+
+/* === Responsive === */
+@media (max-width: 800px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .topbar {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+  .title { display: none; }
+  .actions { margin-right: 0; }
+  .user-email { max-width: 100px; }
+}
