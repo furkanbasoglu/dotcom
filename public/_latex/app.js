@@ -174,14 +174,30 @@ async function initClerk() {
       { 'data-clerk-publishable-key': CONFIG.CLERK_PUBLISHABLE_KEY },
     );
 
-    if (!window.Clerk) {
-      log('Clerk script yüklendi ama window.Clerk yok.', 'error');
+    // window.Clerk'in hazır olmasını bekle (script onload sonrası kısa bir gecikme olabilir)
+    const start = Date.now();
+    while (Date.now() - start < 5000) {
+      if (typeof window.Clerk !== 'undefined') break;
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    if (typeof window.Clerk === 'undefined') {
+      log('Clerk script yüklendi ama window.Clerk 5sn içinde hazır olmadı.', 'error');
       showSignedOutState();
       return;
     }
 
-    clerk = window.Clerk;
-    await clerk.load();
+    // window.Clerk constructor mu yoksa zaten instance mı? İkisini de destekle.
+    if (typeof window.Clerk === 'function') {
+      clerk = new window.Clerk(CONFIG.CLERK_PUBLISHABLE_KEY);
+      await clerk.load();
+    } else {
+      clerk = window.Clerk;
+      // Auto-init varsa zaten loaded olabilir
+      if (!clerk.loaded) {
+        await clerk.load();
+      }
+    }
 
     clerk.addListener(({ user }) => {
       if (user) showSignedInState(user);
