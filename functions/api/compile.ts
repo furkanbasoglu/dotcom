@@ -30,6 +30,7 @@
 interface Env {
   CLERK_SECRET_KEY?: string;
   CLERK_PUBLISHABLE_KEY?: string;
+  PUBLIC_CLERK_PUBLISHABLE_KEY?: string;
   COMPILE_TUNNEL_URL?: string;
   COMPILE_SERVICE_TOKEN_ID?: string;
   COMPILE_SERVICE_TOKEN_SECRET?: string;
@@ -202,7 +203,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!env.RATE_LIMIT) {
     return json({ error: 'Sunucu yapılandırılmamış (KV).' }, 500);
   }
-  if (!env.CLERK_PUBLISHABLE_KEY) {
+  if (!env.CLERK_PUBLISHABLE_KEY && !env.PUBLIC_CLERK_PUBLISHABLE_KEY) {
     return json({ error: 'Sunucu yapılandırılmamış (Clerk).' }, 500);
   }
 
@@ -212,7 +213,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!token) {
     return json({ error: 'Yetkisiz: giriş gerekli.' }, 401);
   }
-  const frontendApi = decodeClerkFrontendApi(env.CLERK_PUBLISHABLE_KEY);
+  // Hem PUBLIC_ prefix'li hem prefix'siz versiyonu destekle
+  const publishableKey = env.CLERK_PUBLISHABLE_KEY || env.PUBLIC_CLERK_PUBLISHABLE_KEY;
+  if (!publishableKey) {
+    return json({ error: 'Sunucu yapılandırılmamış (Clerk).' }, 500);
+  }
+  const frontendApi = decodeClerkFrontendApi(publishableKey);
   if (!frontendApi) {
     return json({ error: 'Clerk publishable key geçersiz.' }, 500);
   }
