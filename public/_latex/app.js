@@ -81,8 +81,17 @@ els.btnClearLogs.addEventListener('click', () => { els.logsBody.textContent = ''
 
 // ──────────────────────────────────────────────────────────────────
 // Monaco editor
+//
+// ÖNEMLİ: Monaco'nun AMD loader'ı (require.config + define) Clerk SDK ile
+// çakışıyor ("Can only have one anonymous define call per script file").
+// Bu yüzden Monaco loader.js'i index.html'de DEĞİL, burada — Clerk init
+// bittikten sonra — yüklüyoruz. Sıra bootstrap'ta korunmalı.
 // ──────────────────────────────────────────────────────────────────
-function initEditor() {
+async function initEditor() {
+  // 1. Monaco loader.js'i dinamik yükle (AMD global'ini şimdi kuruyor)
+  await loadScript('https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js');
+
+  // 2. AMD require ile editor.main'i çek
   return new Promise((resolve) => {
     require.config({
       paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }
@@ -388,9 +397,14 @@ async function renderPdf(blob) {
 
 // ──────────────────────────────────────────────────────────────────
 // Bootstrap
+//
+// Sıra önemli: Clerk ÖNCE yüklenmeli. Çünkü Monaco'nun AMD loader'ı
+// global "define" fonksiyonunu kurunca Clerk SDK'nın `define()` çağrıları
+// ona takılıyor ve "Can only have one anonymous define call per script
+// file" hatasıyla patlıyor.
 // ──────────────────────────────────────────────────────────────────
 (async () => {
   log('Sistem başlatılıyor…', 'info');
-  await initEditor();
   await initClerk();
+  await initEditor();
 })();
