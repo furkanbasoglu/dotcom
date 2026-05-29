@@ -1,21 +1,19 @@
 /**
  * POST /api/report
  *
- * Bildirim / bug-report formundan gelen veriyi alır, doğrular, rate-limit'ler
- * ve REDACTED adresine Resend API üzerinden e-posta gönderir.
+ * Accepts contact / bug-report form submissions, validates the input,
+ * applies CAPTCHA verification and rate limiting, then forwards the
+ * message to the operator via a transactional email provider.
  *
- * Gerekli ortam değişkenleri (Cloudflare Pages → Settings → Environment):
- *   - RESEND_API_KEY       Resend API key
- *   - TURNSTILE_SECRET_KEY Cloudflare Turnstile secret (CAPTCHA doğrulama)
- *   - MAIL_FROM            Gönderen adres (örn. "Bildirim <bildirim@furkanbasoglu.com>")
- *                          Resend'de domain doğrulanmış olmalı.
- *                          Test için "onboarding@resend.dev" da kullanılabilir.
- *   - MAIL_TO              Hedef adres (örn. "REDACTED")
+ * Required Pages environment bindings:
+ *   - RESEND_API_KEY        — transactional email provider API key (encrypted)
+ *   - TURNSTILE_SECRET_KEY  — CAPTCHA verification secret (encrypted)
+ *   - MAIL_FROM             — verified sender address
+ *   - MAIL_TO               — operator's destination address
+ *   - RATE_LIMIT (KV)       — namespace for rate limit counters
  *
- * Gerekli KV binding (Cloudflare Pages → Settings → Functions → KV namespace bindings):
- *   - RATE_LIMIT           Bir KV namespace, "RATE_LIMIT" adıyla bağlı
- *
- * NOT: PUBLIC_TURNSTILE_SITE_KEY ayrıca env'a eklenmeli (Astro build-time'da kullanır).
+ * The frontend additionally reads PUBLIC_TURNSTILE_SITE_KEY at build time
+ * to render the CAPTCHA widget.
  */
 
 interface Env {
@@ -32,10 +30,10 @@ interface KVNamespace {
 }
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
-const RATE_LIMIT_WINDOW = 60 * 60;        // 1 saat (saniye)
-const RATE_LIMIT_MAX = 10;                // saat başına izin verilen istek
+const RATE_LIMIT_WINDOW = 60 * 60;        // 1 hour (seconds)
+const RATE_LIMIT_MAX = 10;                // requests per window
 
-// CORS — same-origin için strict, gerekirse açılır
+// CORS — same-origin only by default
 const corsHeaders = {
   'Content-Type': 'application/json; charset=utf-8',
 };
@@ -45,13 +43,13 @@ function jsonResponse(body: object, status = 200): Response {
 }
 
 function basicEmailValid(email: string): boolean {
-  // RFC 5322 değil, pratik kontrol
+  // Pragmatic check, not full RFC 5322
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 200;
 }
 
 /**
- * Cloudflare Turnstile token doğrulama. Eğer secret tanımlı değilse atlanır
- * (development modu). Production'da TURNSTILE_SECRET_KEY MUTLAKA ayarlanmalı.
+ * Verify a Cloudflare Turnstile token. If the secret is unset, verification
+ * is skipped (intended for local development only — production must set it).
  */
 async function verifyTurnstile(token: string | null, secret: string, ip: string): Promise<boolean> {
   if (!token) return false;
@@ -72,83 +70,79 @@ async function verifyTurnstile(token: string | null, secret: string, ip: string)
 }
 
 /**
- * Hem IP hem email bazlı rate limit. Saat içinde 10 istek limiti.
- * KV ile saatlik bucket — basit ve etkili.
+ * Per-IP and per-email rate limiting via KV with hourly buckets.
  */
 async function checkRateLimit(kv: KVNamespace, ip: string, email: string): Promise<{ ok: boolean; reason?: string }> {
-  const hour = Math.floor(Date.now() / 1000 / RATE_LIMIT_WINDOW);
-  const ipKey = `rl:ip:${ip}:${hour}`;
-  const emailKey = `rl:em:${email.toLowerCase()}:${hour}`;
+  const bucket = Math.floor(Date.now() / 1000 / RATE_LIMIT_WINDOW);
 
-  const [ipRaw, emailRaw] = await Promise.all([kv.get(ipKey), kv.get(emailKey)]);
-  const ipCount = parseInt(ipRaw || '0', 10);
-  const emailCount = parseInt(emailRaw || '0', 10);
+  if (ip) {
+    const ipKey = `rl:ip:${ip}:${bucket}`;
+    const ipCount = parseInt((await kv.get(ipKey)) || '0', 10);
+    if (ipCount >= RATE_LIMIT_MAX) {
+      return { ok: false, reason: 'ip' };
+    }
+    await kv.put(ipKey, String(ipCount + 1), { expirationTtl: RATE_LIMIT_WINDOW + 60 });
+  }
 
-  if (ipCount >= RATE_LIMIT_MAX) return { ok: false, reason: 'ip' };
-  if (emailCount >= RATE_LIMIT_MAX) return { ok: false, reason: 'email' };
+  const emailKey = `rl:email:${email}:${bucket}`;
+  const emailCount = parseInt((await kv.get(emailKey)) || '0', 10);
+  if (emailCount >= RATE_LIMIT_MAX) {
+    return { ok: false, reason: 'email' };
+  }
+  await kv.put(emailKey, String(emailCount + 1), { expirationTtl: RATE_LIMIT_WINDOW + 60 });
 
-  // İki sayacı da +1 (TTL ile otomatik temizlenir)
-  await Promise.all([
-    kv.put(ipKey, String(ipCount + 1), { expirationTtl: RATE_LIMIT_WINDOW + 60 }),
-    kv.put(emailKey, String(emailCount + 1), { expirationTtl: RATE_LIMIT_WINDOW + 60 }),
-  ]);
   return { ok: true };
 }
 
 /**
- * Resend API üzerinden mail gönder. Attachment varsa base64 encode et.
- * Dokümantasyon: https://resend.com/docs/api-reference/emails/send-email
+ * HTML-escape user-supplied strings for inclusion in mail body.
  */
-async function sendMail(env: Env, args: {
-  name: string;
-  email: string;
-  message: string;
-  ip: string;
-  userAgent: string;
-  file?: { name: string; type: string; bytes: Uint8Array } | null;
-}): Promise<{ ok: boolean; error?: string }> {
-  const { name, email, message, ip, userAgent, file } = args;
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-  // Plain-text body — HTML escape gerektirmez
-  const bodyText = `Yeni bildirim alındı.
+async function sendMail(
+  env: Env,
+  name: string,
+  email: string,
+  message: string,
+  file: { name: string; bytes: Uint8Array } | null,
+  ip: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const bodyText = [
+    `Name: ${name}`,
+    `Email: ${email}`,
+    `IP: ${ip || 'n/a'}`,
+    '',
+    'Message:',
+    message,
+  ].join('\n');
 
-Gönderen: ${name} <${email}>
-IP: ${ip}
-User-Agent: ${userAgent}
-Tarih: ${new Date().toISOString()}
-
-────────────────────────────────────
-${message}
-────────────────────────────────────
-${file ? `\nEk: ${file.name} (${file.bytes.length} bayt, ${file.type || 'application/octet-stream'})` : ''}
-`;
-
-  // HTML body — basit escape (sadece &, <, >)
-  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const bodyHtml = `<div style="font-family:system-ui,sans-serif;font-size:14px;line-height:1.55;color:#222;">
-<p><strong>Yeni bildirim alındı.</strong></p>
-<table style="border-collapse:collapse;margin:8px 0;">
-<tr><td style="padding:2px 8px;color:#666;">Gönderen</td><td style="padding:2px 8px;"><strong>${esc(name)}</strong> &lt;${esc(email)}&gt;</td></tr>
-<tr><td style="padding:2px 8px;color:#666;">IP</td><td style="padding:2px 8px;font-family:monospace;">${esc(ip)}</td></tr>
-<tr><td style="padding:2px 8px;color:#666;">User-Agent</td><td style="padding:2px 8px;font-family:monospace;font-size:12px;">${esc(userAgent)}</td></tr>
-<tr><td style="padding:2px 8px;color:#666;">Tarih</td><td style="padding:2px 8px;">${new Date().toISOString()}</td></tr>
-</table>
-<hr style="border:none;border-top:1px solid #ddd;margin:16px 0;" />
-<pre style="white-space:pre-wrap;font-family:inherit;background:#f6f6f6;padding:12px;border-radius:4px;">${esc(message)}</pre>
-${file ? `<p style="color:#666;font-size:12px;">Ek: <code>${esc(file.name)}</code> (${file.bytes.length} bayt)</p>` : ''}
+  const bodyHtml = `<div style="font-family:system-ui,sans-serif;font-size:14px;color:#222;">
+<p><strong>Name:</strong> ${esc(name)}</p>
+<p><strong>Email:</strong> <a href="mailto:${esc(email)}">${esc(email)}</a></p>
+<p><strong>IP:</strong> ${esc(ip || 'n/a')}</p>
+<hr style="border:none;border-top:1px solid #ddd;margin:1em 0;">
+<p style="white-space:pre-wrap;">${esc(message)}</p>
+${file ?
+`<p style="color:#666;font-size:12px;">Attachment: <code>${esc(file.name)}</code> (${file.bytes.length} bytes)</p>` : ''}
 </div>`;
 
   const payload: any = {
     from: env.MAIL_FROM,
     to: [env.MAIL_TO],
     reply_to: email,
-    subject: `[Site bildirim] ${name} — ${message.slice(0, 60).replace(/\s+/g, ' ')}${message.length > 60 ? '…' : ''}`,
+    subject: `[Site report] ${name} — ${message.slice(0, 60).replace(/\s+/g, ' ')}${message.length > 60 ? '…' : ''}`,
     text: bodyText,
     html: bodyHtml,
   };
 
   if (file) {
-    // Resend base64 attachment
     let binStr = '';
     const chunk = 0x8000;
     for (let i = 0; i < file.bytes.length; i += chunk) {
@@ -171,7 +165,7 @@ ${file ? `<p style="color:#666;font-size:12px;">Ek: <code>${esc(file.name)}</cod
 
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
-    return { ok: false, error: `Resend API ${res.status}: ${errText.slice(0, 200)}` };
+    return { ok: false, error: `Mail provider ${res.status}: ${errText.slice(0, 200)}` };
   }
   return { ok: true };
 }
@@ -179,15 +173,15 @@ ${file ? `<p style="color:#666;font-size:12px;">Ek: <code>${esc(file.name)}</cod
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
 
-  // ───── Env sanity check
+  // ── Env sanity check
   if (!env.RESEND_API_KEY || !env.MAIL_FROM || !env.MAIL_TO) {
-    return jsonResponse({ error: 'Sunucu yapılandırılmamış (env eksik).' }, 500);
+    return jsonResponse({ error: 'Server misconfigured (missing environment).' }, 500);
   }
   if (!env.RATE_LIMIT) {
-    return jsonResponse({ error: 'Sunucu yapılandırılmamış (KV bağlanmamış).' }, 500);
+    return jsonResponse({ error: 'Server misconfigured (no rate limit binding).' }, 500);
   }
 
-  // ───── Form data parse
+  // ── Form data parse
   let form: FormData;
   try {
     form = await request.formData();
@@ -202,12 +196,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const turnstileToken = String(form.get('cf-turnstile-response') || '');
   const fileFromForm = form.get('file');
 
-  // ───── Honeypot — bot doldurmuş
+  // ── Honeypot triggered → silent reject
   if (honeypot.length > 0) {
     return jsonResponse({ error: 'Bot tespit edildi.' }, 400);
   }
 
-  // ───── Field validation
+  // ── Field validation
   if (!name || name.length > 100) {
     return jsonResponse({ error: 'Ad alanı zorunlu (max 100 karakter).' }, 400);
   }
@@ -218,53 +212,36 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return jsonResponse({ error: 'Mesaj 10–5000 karakter arasında olmalı.' }, 400);
   }
 
-  // ───── Turnstile (varsa)
+  // ── CAPTCHA
+  const ip = request.headers.get('CF-Connecting-IP') || '';
   if (env.TURNSTILE_SECRET_KEY) {
-    const ip = request.headers.get('CF-Connecting-IP') || '';
     const turnstileOk = await verifyTurnstile(turnstileToken, env.TURNSTILE_SECRET_KEY, ip);
     if (!turnstileOk) {
       return jsonResponse({ error: 'CAPTCHA doğrulanamadı.' }, 400);
     }
   }
 
-  // ───── Rate limit
-  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  // ── Rate limit
   const rl = await checkRateLimit(env.RATE_LIMIT, ip, email);
   if (!rl.ok) {
-    return jsonResponse({ error: 'Çok fazla istek. Bir saat sonra deneyin.' }, 429);
+    return jsonResponse({ error: 'Çok fazla istek. Lütfen bir saat sonra tekrar deneyin.' }, 429);
   }
 
-  // ───── File handling
-  let file: { name: string; type: string; bytes: Uint8Array } | null = null;
-  if (fileFromForm && fileFromForm instanceof File && fileFromForm.size > 0) {
+  // ── Optional attachment
+  let file: { name: string; bytes: Uint8Array } | null = null;
+  if (fileFromForm instanceof File && fileFromForm.size > 0) {
     if (fileFromForm.size > MAX_FILE_BYTES) {
-      return jsonResponse({ error: 'Dosya 10 MB sınırını aşıyor.' }, 413);
+      return jsonResponse({ error: `Dosya çok büyük (max ${MAX_FILE_BYTES / 1024 / 1024} MB).` }, 413);
     }
     const buf = await fileFromForm.arrayBuffer();
-    file = {
-      name: fileFromForm.name || 'attachment',
-      type: fileFromForm.type || 'application/octet-stream',
-      bytes: new Uint8Array(buf),
-    };
+    file = { name: fileFromForm.name || 'attachment', bytes: new Uint8Array(buf) };
   }
 
-  // ───── Send mail
-  const userAgent = request.headers.get('User-Agent') || '';
-  const result = await sendMail(env, { name, email, message, ip, userAgent, file });
-  if (!result.ok) {
-    return jsonResponse({ error: 'Mail gönderilemedi.', detail: result.error }, 502);
+  // ── Send mail
+  const sendRes = await sendMail(env, name, email, message, file, ip);
+  if (!sendRes.ok) {
+    return jsonResponse({ error: 'Mail gönderilemedi.', detail: sendRes.error }, 502);
   }
 
   return jsonResponse({ ok: true });
-};
-
-// OPTIONS preflight (same-origin için aslen gereksiz, defansif)
-export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
 };

@@ -12,19 +12,19 @@
  * döner ve frontend kullanıcıya "servis hazırlanıyor" mesajı gösterir.
  *
  * Cloudflare Pages env (Settings → Environment Variables):
- *   - CLERK_SECRET_KEY              Clerk backend secret (sk_test_... / sk_live_...)
- *   - CLERK_PUBLISHABLE_KEY         Clerk publishable (pk_test_... / pk_live_...)
- *   - COMPILE_TUNNEL_URL            (sonra) https://REDACTED
- *   - COMPILE_SERVICE_TOKEN_ID      (sonra) Cloudflare Access service token client id
- *   - COMPILE_SERVICE_TOKEN_SECRET  (sonra) Cloudflare Access service token secret
+ *   - CLERK_SECRET_KEY              Clerk backend secret
+ *   - CLERK_PUBLISHABLE_KEY         Clerk publishable key (also accepted: PUBLIC_CLERK_PUBLISHABLE_KEY)
+ *   - COMPILE_TUNNEL_URL            Tunnel endpoint for the compile backend
+ *   - COMPILE_SERVICE_TOKEN_ID      Access service token client id
+ *   - COMPILE_SERVICE_TOKEN_SECRET  Access service token secret
  *
  * Cloudflare Pages KV binding:
- *   - RATE_LIMIT                    (iletişim sayfasıyla aynı namespace olabilir)
+ *   - RATE_LIMIT                    counters for per-user rate limiting
  *
- * Tier limitleri:
- *   - Free:      1 proje, 10 MB, 30s timeout, düşük öncelik
- *   - Pro:       1 proje sınırsız derleme, 100 MB, 120s
- *   - Unlimited: sınırsız proje, 500 MB, 300s
+ * Tier limits:
+ *   - Free:      single project, 10 MB, 30s timeout, low priority
+ *   - Pro:       single project unlimited compiles, 100 MB, 120s
+ *   - Unlimited: unlimited projects, 500 MB, 300s
  */
 
 interface Env {
