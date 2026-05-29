@@ -168,9 +168,17 @@ async function initClerk() {
   }
 
   try {
-    // Resmi script tag yöntemi — Clerk kendi instance URL'inden yüklenir
+    // v6 yöntemi: ÖNCE UI bundle, SONRA clerk-js SDK.
+    // (v5'te tek script yetiyordu; v6'da Clerk.load() ui constructor'ı bekliyor,
+    //  ve o constructor sadece ui.browser.js içinden geliyor.)
+    log('Clerk UI bundle yükleniyor…', 'info');
     await loadScript(
-      `https://${frontendApi}/npm/@clerk/clerk-js@5/dist/clerk.browser.js`,
+      `https://${frontendApi}/npm/@clerk/ui@1/dist/ui.browser.js`,
+    );
+
+    log('Clerk SDK yükleniyor…', 'info');
+    await loadScript(
+      `https://${frontendApi}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`,
       { 'data-clerk-publishable-key': CONFIG.CLERK_PUBLISHABLE_KEY },
     );
 
@@ -187,16 +195,19 @@ async function initClerk() {
       return;
     }
 
-    // window.Clerk constructor mu yoksa zaten instance mı? İkisini de destekle.
+    // v6'da data-clerk-publishable-key attribute ile auto-init oluyor → instance.
+    // Yine de constructor olma ihtimaline karşı her ikisini destekleyelim.
     if (typeof window.Clerk === 'function') {
       clerk = new window.Clerk(CONFIG.CLERK_PUBLISHABLE_KEY);
-      await clerk.load();
     } else {
       clerk = window.Clerk;
-      // Auto-init varsa zaten loaded olabilir
-      if (!clerk.loaded) {
-        await clerk.load();
-      }
+    }
+
+    // v6: load() çağrısında ClerkUI constructor zorunlu (ui.browser.js'den geliyor)
+    if (!clerk.loaded) {
+      await clerk.load({
+        ui: { ClerkUI: window.__internal_ClerkUICtor },
+      });
     }
 
     clerk.addListener(({ user }) => {
