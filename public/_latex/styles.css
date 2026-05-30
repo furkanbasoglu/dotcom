@@ -141,6 +141,26 @@ button {
   border-color: transparent;
   color: #ccc;
 }
+
+/* === Engine select (topbar) === */
+.engine-select {
+  background: #1f1f1f;
+  border: 1px solid #333;
+  color: #ccc;
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-family: "JetBrains Mono", monospace;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='%23999' d='M3 4l3 4 3-4z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.4rem center;
+  padding-right: 1.4rem;
+}
+.engine-select:hover:not(:disabled) { border-color: #555; color: #fff; }
+.engine-select:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-ghost:hover:not(:disabled) {
   color: #fff;
   background: #1f1f1f;

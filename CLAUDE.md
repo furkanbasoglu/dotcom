@@ -145,13 +145,14 @@ dosya ağacı + sürükle-bırak + boyutlandırılabilir paneller; D1+R2+KV; Cle
 proje listele/oluştur/aç/kaydet/sil + tier limiti; "Projelerim" dashboard; özel modal;
 compile.ts tier'ı D1'den okur + binary boyutu limite dahil;
 log parse → tıklanabilir hata/uyarı tanıları → editörde ilgili satıra atlama;
-PDF viewer zoom (−/+/fit-width) + sayfa gezinme (◀/▶/sayı kutusu, scroll senkron).
+PDF viewer zoom (−/+/fit-width) + sayfa gezinme (◀/▶/sayı kutusu, scroll senkron);
+engine seçimi UI (topbar dropdown, per-project D1'de kalıcı).
 
 **Kalan / sıradaki:**
 1. Derleme iptal (cancel) — frontend AbortController + Pages function abort + tunnel/VM
    process kill. VM koduna dokunmak gerektiğinden ayrı plan; bu repo tek başına bitiremez.
-2. UI'dan engine/derleme ayarları seçimi (compiler settings).
-3. PDF içinde metin arama + "sayfaya sığdır" modu.
+2. PDF içinde metin arama + "sayfaya sığdır" modu.
+3. Kapsamlı compiler settings paneli (latexmk flag'leri, output dir, vb.).
 4. Otomatik tamamlama / snippet / outline; otomatik kaydetme; şablonlar; SyncTeX.
 5. **IaC**: tek SSH ile Pi+VM kurulumunu yeniden ayağa kaldıran idempotent script'ler
    (`infra/` veya ayrı repo). Detay `docs/REQUIREMENTS.md`.

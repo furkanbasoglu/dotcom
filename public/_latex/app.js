@@ -52,6 +52,7 @@ const els = {
   btnUpload: document.getElementById('btn-upload'),
   uploadInput: document.getElementById('upload-input'),
   btnCompile: document.getElementById('btn-compile'),
+  engineSelect: document.getElementById('engine-select'),
   btnDownload: document.getElementById('btn-download'),
   btnSignIn: document.getElementById('btn-sign-in'),
   btnSignUp: document.getElementById('btn-sign-up'),
@@ -777,7 +778,7 @@ els.btnCompile.addEventListener('click', async () => {
     const res = await fetch(`${CONFIG.API_BASE}/compile`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ files, entry, engine: 'pdflatex' }),
+      body: JSON.stringify({ files, entry, engine: currentEngine }),
     });
 
     if (res.status === 503) {
@@ -1064,8 +1065,23 @@ const btnProjects = document.getElementById('btn-projects');
 
 let currentProjectId = null;
 let currentTier = 'free';
+let currentEngine = 'pdflatex';
 let dirty = false;
 let dirtyListenerAttached = false;
+
+function setEngine(eng, { markDirty = false } = {}) {
+  const valid = ['pdflatex', 'xelatex', 'lualatex'];
+  const next = valid.includes(eng) ? eng : 'pdflatex';
+  currentEngine = next;
+  if (els.engineSelect) els.engineSelect.value = next;
+  if (markDirty && currentProjectId) { dirty = true; updateSaveState(); }
+}
+
+if (els.engineSelect) {
+  els.engineSelect.addEventListener('change', (e) => {
+    setEngine(e.target.value, { markDirty: true });
+  });
+}
 
 function setTierBadge(tier) {
   const label = tier === 'unlimited' ? 'Unlimited' : tier === 'pro' ? 'Pro' : 'Free';
@@ -1111,6 +1127,7 @@ function enterEditor() {
   if (btnProjects) btnProjects.style.display = '';
   els.btnCompile.style.display = '';
   els.btnDownload.style.display = '';
+  if (els.engineSelect) { els.engineSelect.style.display = ''; els.engineSelect.disabled = false; }
   attachDirtyListener();
   updateSaveState();
   if (editor) editor.layout();
@@ -1125,7 +1142,9 @@ function enterDashboard() {
   if (btnProjects) btnProjects.style.display = 'none';
   els.btnCompile.style.display = 'none';
   els.btnDownload.style.display = 'none';
+  if (els.engineSelect) { els.engineSelect.style.display = 'none'; els.engineSelect.disabled = true; }
   currentProjectId = null;
+  setEngine('pdflatex'); // editör dışındayken nötr varsayılan
   dirty = false;
   refreshDashboard();
 }
@@ -1208,6 +1227,7 @@ function loadProjectIntoEditor(data) {
     }
     setMainSilent(entry);
   }
+  setEngine(data.project?.engine || 'pdflatex');
   renderTree();
   openFile(getEntry());
   dirty = false;
@@ -1275,7 +1295,7 @@ async function saveProject(silent) {
   try {
     const res = await api(`/projects/${currentProjectId}`, {
       method: 'PUT',
-      body: JSON.stringify({ entry, engine: 'pdflatex', files }),
+      body: JSON.stringify({ entry, engine: currentEngine, files }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.status === 413) { log(data.error || 'Boyut limiti aşıldı.', 'error'); return; }

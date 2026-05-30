@@ -50,7 +50,7 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 - ✅ Eşzamanlılık kuyruğu + tier önceliği + per-user limit.
 - ✅ Bibliyografya (latexmk biber/bibtex'i otomatik çağırır).
 - ✅ Hata/log gösterimi (ham log + tıklanabilir tanılar — error ve LaTeX Warning).
-- ⬜ UI'dan engine ve derleme ayarları seçimi (compiler settings paneli).
+- 🟡 UI'dan engine seçimi (topbar dropdown, per-project D1'de kalıcı) — derleme ayarları paneli henüz yok.
 - ✅ Log parse → tıklanınca editörde ilgili satıra gitme.
 - ⬜ Derlemeyi iptal etme (cancel).
 - ⬜ SyncTeX: PDF ↔ kaynak çift yönlü atlama.
@@ -144,7 +144,7 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 3. 🟡 Frontend "Projelerim" ekranı + kaydet/yükle akışı (yapım aşamasında).
 4. 🟡 Log parse ✅ (tıklanabilir hatalar/uyarılar) + derleme iptali ⬜.
 5. ✅ PDF zoom + sayfa gezinme (sayfaya sığdır ve metin arama hariç).
-6. ⬜ Compiler settings paneli (engine seçimi UI'dan).
+6. 🟡 Engine seçimi UI'da (dropdown ✅, kapsamlı compiler settings paneli ⬜).
 
 **v2 — Verimlilik:**
 6. Otomatik tamamlama + snippet + outline.
