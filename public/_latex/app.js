@@ -3,14 +3,15 @@
  *
  * Yapı:
  *  - Clerk JS yükle (publishable key window.__APP_CONFIG__ üzerinden)
- *  - Monaco editor başlat (default LaTeX template)
- *  - "Derle" → /api/compile çağır (auth header'ı Clerk'ten)
+ *  - Monaco editor başlat (çok dosyalı: dosya başına ayrı model)
+ *  - Sol panelde Overleaf tarzı dosya ağacı (ekle / sil / yeniden adlandır / ana yap)
+ *  - Görsel (PNG/JPG vb.) yükleme → base64 ile files'a binary olarak girer
+ *  - "Derle" → /api/compile çağır (tüm proje tek files objesinde, auth Clerk'ten)
  *  - PDF.js ile sonuç PDF'ini render
  *  - Log paneli ile durum bildir
  *
- * Stub aşaması (Tunnel + VM API henüz yok):
- *  - /api/compile şu an 503 dönüyor
- *  - Kullanıcı yine de UI'da derleme akışını test edebilir
+ * Dosyalar şu an SADECE tarayıcı belleğinde yaşar (oturum-içi). Sayfa yenilenince
+ * sıfırlanır. Kalıcı depolama (R2/D1) sonraki aşamada eklenecek.
  */
 
 const CONFIG = window.__APP_CONFIG__ || { CLERK_PUBLISHABLE_KEY: '', API_BASE: '/api' };
@@ -43,7 +44,13 @@ $$\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}$$
 // ──────────────────────────────────────────────────────────────────
 const els = {
   editorHost: document.getElementById('editor'),
+  binaryPreview: document.getElementById('binary-preview'),
+  editorTitle: document.getElementById('editor-title'),
   editorMeta: document.getElementById('editor-meta'),
+  treeList: document.getElementById('file-tree'),
+  btnNewFile: document.getElementById('btn-new-file'),
+  btnUpload: document.getElementById('btn-upload'),
+  uploadInput: document.getElementById('upload-input'),
   btnCompile: document.getElementById('btn-compile'),
   btnDownload: document.getElementById('btn-download'),
   btnSignIn: document.getElementById('btn-sign-in'),
@@ -64,6 +71,10 @@ let editor = null;
 let lastPdfBlob = null;
 let clerk = null;
 
+// Proje durumu (oturum-içi)
+//  files: [{ name, kind:'text'|'binary', model?(Monaco), data?(base64), mime?, isMain }]
+const project = { files: [], activeName: null };
+
 // ──────────────────────────────────────────────────────────────────
 // Logging
 // ──────────────────────────────────────────────────────────────────
@@ -80,6 +91,220 @@ function log(msg, level = 'info') {
 els.btnClearLogs.addEventListener('click', () => { els.logsBody.textContent = ''; });
 
 // ──────────────────────────────────────────────────────────────────
+// Proje / dosya ağacı
+// ──────────────────────────────────────────────────────────────────
+function findFile(name) { return project.files.find((f) => f.name === name); }
+
+function validName(n) {
+  if (!n || n.length > 120) return false;
+  if (n.includes('..') || n.startsWith('/') || n.includes('\\') || n.includes('\0')) return false;
+  return /^[A-Za-z0-9._/-]+$/.test(n);
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(',')[1] || '');
+    r.onerror = () => reject(new Error('Dosya okunamadı'));
+    r.readAsDataURL(file);
+  });
+}
+
+function approxBytes(b64) { return Math.round((b64 ? b64.length : 0) * 3 / 4); }
+
+function setMainSilent(name) {
+  const f = findFile(name);
+  if (!f || f.kind !== 'text') return;
+  project.files.forEach((x) => { x.isMain = (x === f); });
+}
+
+function setMain(name) {
+  setMainSilent(name);
+  renderTree();
+  log(`Ana dosya: ${name}`, 'info');
+}
+
+function getEntry() {
+  const m = project.files.find((f) => f.isMain && f.kind === 'text');
+  if (m) return m.name;
+  const t = project.files.find((f) => f.kind === 'text');
+  return t ? t.name : 'main.tex';
+}
+
+function addTextFile(name, content, opts = {}) {
+  const model = monaco.editor.createModel(content, 'latex');
+  const file = { name, kind: 'text', model, isMain: false };
+  project.files.push(file);
+  if (opts.main) setMainSilent(name);
+  return file;
+}
+
+function addBinaryFile(name, b64, mime) {
+  const file = { name, kind: 'binary', data: b64, mime: mime || 'application/octet-stream', isMain: false };
+  project.files.push(file);
+  return file;
+}
+
+function buildCompileFiles() {
+  const files = {};
+  for (const f of project.files) {
+    if (f.kind === 'text') files[f.name] = f.model.getValue();
+    else files[f.name] = { encoding: 'base64', data: f.data };
+  }
+  return files;
+}
+
+function openFile(name) {
+  const f = findFile(name);
+  if (!f) return;
+  project.activeName = name;
+  els.editorTitle.textContent = name;
+  if (f.kind === 'text') {
+    els.binaryPreview.style.display = 'none';
+    els.editorHost.style.display = 'block';
+    editor.setModel(f.model);
+    editor.layout();
+  } else {
+    els.editorHost.style.display = 'none';
+    els.binaryPreview.style.display = 'flex';
+    els.binaryPreview.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = `data:${f.mime};base64,${f.data}`;
+    img.alt = name;
+    els.binaryPreview.appendChild(img);
+  }
+  updateEditorMeta();
+  renderTree();
+}
+
+function deleteFile(name) {
+  const f = findFile(name);
+  if (!f) return;
+  if (project.files.length <= 1) { log('Son dosya silinemez.', 'warn'); return; }
+  if (f.isMain) { log('Ana dosya silinemez. Önce başka bir dosyayı ana yap.', 'warn'); return; }
+  if (!confirm(`"${name}" silinsin mi?`)) return;
+  if (f.kind === 'text' && f.model) f.model.dispose();
+  project.files = project.files.filter((x) => x !== f);
+  if (project.activeName === name) openFile(getEntry());
+  else renderTree();
+  log(`Silindi: ${name}`, 'info');
+}
+
+function renameFile(name) {
+  const f = findFile(name);
+  if (!f) return;
+  const input = prompt('Yeni ad:', name);
+  if (input == null) return;
+  const clean = input.trim();
+  if (clean === name) return;
+  if (!validName(clean)) { log('Geçersiz dosya adı.', 'warn'); return; }
+  if (findFile(clean)) { log('Bu isimde dosya zaten var.', 'warn'); return; }
+  f.name = clean;
+  if (project.activeName === name) {
+    project.activeName = clean;
+    els.editorTitle.textContent = clean;
+  }
+  renderTree();
+}
+
+function mkBtn(text, title, onclick) {
+  const b = document.createElement('button');
+  b.className = 'row-btn';
+  b.type = 'button';
+  b.title = title;
+  b.textContent = text;
+  b.addEventListener('click', onclick);
+  return b;
+}
+
+function renderTree() {
+  els.treeList.innerHTML = '';
+  for (const f of project.files) {
+    const li = document.createElement('li');
+    li.className = 'file-item' + (f.name === project.activeName ? ' active' : '');
+
+    const nameWrap = document.createElement('span');
+    nameWrap.className = 'file-name';
+
+    const icon = document.createElement('span');
+    icon.className = 'file-icon';
+    icon.textContent = f.kind === 'binary' ? '🖼' : '📄';
+    nameWrap.appendChild(icon);
+
+    const label = document.createElement('span');
+    label.className = 'file-label';
+    label.textContent = f.name;
+    nameWrap.appendChild(label);
+
+    if (f.isMain) {
+      const badge = document.createElement('span');
+      badge.className = 'main-badge';
+      badge.textContent = 'ana';
+      nameWrap.appendChild(badge);
+    }
+    nameWrap.addEventListener('click', () => openFile(f.name));
+    li.appendChild(nameWrap);
+
+    const actions = document.createElement('span');
+    actions.className = 'file-row-actions';
+    if (f.kind === 'text' && !f.isMain) {
+      actions.appendChild(mkBtn('★', 'Ana dosya yap', (e) => { e.stopPropagation(); setMain(f.name); }));
+    }
+    actions.appendChild(mkBtn('✎', 'Yeniden adlandır', (e) => { e.stopPropagation(); renameFile(f.name); }));
+    actions.appendChild(mkBtn('🗑', 'Sil', (e) => { e.stopPropagation(); deleteFile(f.name); }));
+    li.appendChild(actions);
+
+    els.treeList.appendChild(li);
+  }
+}
+
+function initProject() {
+  project.files = [];
+  project.activeName = null;
+  addTextFile('main.tex', DEFAULT_TEX, { main: true });
+  renderTree();
+  openFile('main.tex');
+}
+
+// Dosya ağacı araç çubuğu
+els.btnNewFile.addEventListener('click', () => {
+  if (!editor) return;
+  const input = prompt('Yeni dosya adı (örn. bolum1.tex, sections/intro.tex):');
+  if (input == null) return;
+  const clean = input.trim();
+  if (!validName(clean)) { log('Geçersiz dosya adı.', 'warn'); return; }
+  if (findFile(clean)) { log('Bu isimde dosya zaten var.', 'warn'); return; }
+  addTextFile(clean, '');
+  renderTree();
+  openFile(clean);
+});
+
+els.btnUpload.addEventListener('click', () => els.uploadInput.click());
+
+els.uploadInput.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    if (file.size > 8 * 1024 * 1024) {
+      log('Görsel çok büyük (>8MB).', 'warn');
+      return;
+    }
+    const b64 = await fileToBase64(file);
+    let name = file.name.replace(/\s+/g, '_');
+    if (!validName(name)) name = 'gorsel_' + Date.now();
+    if (findFile(name)) name = Date.now() + '_' + name;
+    addBinaryFile(name, b64, file.type);
+    renderTree();
+    openFile(name);
+    log(`Yüklendi: ${name} (${(file.size / 1024).toFixed(1)} KB)`, 'ok');
+  } catch (err) {
+    log('Görsel yüklenemedi: ' + (err?.message || err), 'error');
+  } finally {
+    e.target.value = '';
+  }
+});
+
+// ──────────────────────────────────────────────────────────────────
 // Monaco editor
 //
 // ÖNEMLİ: Monaco'nun AMD loader'ı (require.config + define) Clerk SDK ile
@@ -94,11 +319,10 @@ async function initEditor() {
   // 2. AMD require ile editor.main'i çek
   return new Promise((resolve) => {
     require.config({
-      paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }
+      paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' },
     });
     require(['vs/editor/editor.main'], () => {
       editor = monaco.editor.create(els.editorHost, {
-        value: DEFAULT_TEX,
         language: 'latex',
         theme: 'vs-dark',
         fontSize: 13,
@@ -110,8 +334,8 @@ async function initEditor() {
         renderLineHighlight: 'gutter',
         padding: { top: 8 },
       });
-      updateEditorMeta();
       editor.onDidChangeModelContent(updateEditorMeta);
+      initProject();
       log('Editor hazır.', 'ok');
       resolve();
     });
@@ -119,12 +343,17 @@ async function initEditor() {
 }
 
 function updateEditorMeta() {
-  if (!editor) return;
-  const model = editor.getModel();
-  const lines = model.getLineCount();
-  const chars = model.getValueLength();
-  const kb = (chars / 1024).toFixed(1);
-  els.editorMeta.textContent = `${kb} KB · ${lines} satır`;
+  const f = findFile(project.activeName);
+  if (!f) return;
+  if (f.kind === 'text') {
+    const model = f.model;
+    const lines = model.getLineCount();
+    const kb = (model.getValueLength() / 1024).toFixed(1);
+    els.editorMeta.textContent = `${kb} KB · ${lines} satır`;
+  } else {
+    const kb = (approxBytes(f.data) / 1024).toFixed(1);
+    els.editorMeta.textContent = `görsel · ${kb} KB`;
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -132,10 +361,7 @@ function updateEditorMeta() {
 // ──────────────────────────────────────────────────────────────────
 /**
  * Clerk publishable key formatı: pk_<env>_<base64(frontend-api-url + "$")>
- * Örn: pk_test_cHJldHHR5LXRpZ2V... → "pretty-tiger-XX.clerk.accounts.dev$"
- *
  * Frontend API URL'i decode edip oradan Clerk script'ini yüklüyoruz.
- * (jsdelivr CDN'inde @clerk/clerk-js'in .mjs build'i artık yok; resmi yol bu.)
  */
 function decodeClerkFrontendApi(publishableKey) {
   const parts = publishableKey.split('_');
@@ -178,8 +404,6 @@ async function initClerk() {
 
   try {
     // v6 yöntemi: ÖNCE UI bundle, SONRA clerk-js SDK.
-    // (v5'te tek script yetiyordu; v6'da Clerk.load() ui constructor'ı bekliyor,
-    //  ve o constructor sadece ui.browser.js içinden geliyor.)
     log('Clerk UI bundle yükleniyor…', 'info');
     await loadScript(
       `https://${frontendApi}/npm/@clerk/ui@1/dist/ui.browser.js`,
@@ -191,11 +415,10 @@ async function initClerk() {
       { 'data-clerk-publishable-key': CONFIG.CLERK_PUBLISHABLE_KEY },
     );
 
-    // window.Clerk'in hazır olmasını bekle (script onload sonrası kısa bir gecikme olabilir)
     const start = Date.now();
     while (Date.now() - start < 5000) {
       if (typeof window.Clerk !== 'undefined') break;
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise((r) => setTimeout(r, 50));
     }
 
     if (typeof window.Clerk === 'undefined') {
@@ -204,15 +427,12 @@ async function initClerk() {
       return;
     }
 
-    // v6'da data-clerk-publishable-key attribute ile auto-init oluyor → instance.
-    // Yine de constructor olma ihtimaline karşı her ikisini destekleyelim.
     if (typeof window.Clerk === 'function') {
       clerk = new window.Clerk(CONFIG.CLERK_PUBLISHABLE_KEY);
     } else {
       clerk = window.Clerk;
     }
 
-    // v6: load() çağrısında ClerkUI constructor zorunlu (ui.browser.js'den geliyor)
     if (!clerk.loaded) {
       await clerk.load({
         ui: { ClerkUI: window.__internal_ClerkUICtor },
@@ -258,18 +478,12 @@ function showSignedInState(user) {
 }
 
 els.btnSignIn.addEventListener('click', () => {
-  if (!clerk) {
-    log('Auth servisi hazır değil.', 'warn');
-    return;
-  }
+  if (!clerk) { log('Auth servisi hazır değil.', 'warn'); return; }
   clerk.openSignIn();
 });
 
 els.btnSignUp.addEventListener('click', () => {
-  if (!clerk) {
-    log('Auth servisi hazır değil.', 'warn');
-    return;
-  }
+  if (!clerk) { log('Auth servisi hazır değil.', 'warn'); return; }
   clerk.openSignUp();
 });
 
@@ -284,19 +498,28 @@ els.btnSignOut.addEventListener('click', async () => {
 // ──────────────────────────────────────────────────────────────────
 els.btnCompile.addEventListener('click', async () => {
   if (!editor) return;
-  const source = editor.getValue();
-  if (!source.trim()) {
-    log('Editör boş.', 'warn');
+
+  const entry = getEntry();
+  const files = buildCompileFiles();
+
+  if (!files[entry] || typeof files[entry] !== 'string') {
+    log('Ana dosya bir .tex metin dosyası olmalı. Bir dosyayı ★ ile ana yap.', 'warn');
     return;
   }
-  if (source.length > 500_000) {
-    log('Dosya çok büyük (>500KB). Şimdilik küçük tutalım.', 'warn');
+  if (!files[entry].trim()) {
+    log('Ana dosya boş.', 'warn');
+    return;
+  }
+  // Hafif metin boyutu kontrolü (gerçek limitler edge + backend'de)
+  const totalText = project.files.reduce((acc, f) => acc + (f.kind === 'text' ? f.model.getValueLength() : 0), 0);
+  if (totalText > 2_000_000) {
+    log('Toplam metin çok büyük (>2MB). Şimdilik küçük tutalım.', 'warn');
     return;
   }
 
   els.btnCompile.disabled = true;
   els.btnDownload.disabled = true;
-  log('Derleme isteği gönderiliyor…', 'info');
+  log(`Derleme isteği gönderiliyor… (ana: ${entry}, ${project.files.length} dosya)`, 'info');
 
   try {
     const token = clerk?.session ? await clerk.session.getToken() : null;
@@ -306,11 +529,7 @@ els.btnCompile.addEventListener('click', async () => {
     const res = await fetch(`${CONFIG.API_BASE}/compile`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        files: { 'main.tex': source },
-        entry: 'main.tex',
-        engine: 'pdflatex',
-      }),
+      body: JSON.stringify({ files, entry, engine: 'pdflatex' }),
     });
 
     if (res.status === 503) {
@@ -323,18 +542,16 @@ els.btnCompile.addEventListener('click', async () => {
       return;
     }
     if (res.status === 429) {
-      log('Çok fazla istek. Birazdan tekrar dene.', 'warn');
+      log('Çok fazla istek ya da süren bir derlemen var. Birazdan tekrar dene.', 'warn');
       return;
     }
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       log('Hata: ' + (data.error || res.statusText), 'error');
+      if (data.log) log(data.log, 'error');
       return;
     }
 
-    // Content type'a göre ayır:
-    //  - application/pdf  → direkt PDF
-    //  - application/json → log/hata
     const ct = res.headers.get('Content-Type') || '';
     if (ct.includes('application/pdf')) {
       const blob = await res.blob();
@@ -359,7 +576,7 @@ els.btnDownload.addEventListener('click', () => {
   const url = URL.createObjectURL(lastPdfBlob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'main.pdf';
+  a.download = getEntry().replace(/\.tex$/i, '') + '.pdf';
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -373,7 +590,6 @@ async function renderPdf(blob) {
   els.pdfViewer.innerHTML = '';
   const buf = await blob.arrayBuffer();
 
-  // PDF.js'i dinamik import et
   const pdfjs = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.min.mjs');
   pdfjs.GlobalWorkerOptions.workerSrc =
     'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.worker.min.mjs';
@@ -396,12 +612,7 @@ async function renderPdf(blob) {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Bootstrap
-//
-// Sıra önemli: Clerk ÖNCE yüklenmeli. Çünkü Monaco'nun AMD loader'ı
-// global "define" fonksiyonunu kurunca Clerk SDK'nın `define()` çağrıları
-// ona takılıyor ve "Can only have one anonymous define call per script
-// file" hatasıyla patlıyor.
+// Bootstrap — Clerk ÖNCE yüklenmeli (AMD/define çakışması nedeniyle).
 // ──────────────────────────────────────────────────────────────────
 (async () => {
   log('Sistem başlatılıyor…', 'info');

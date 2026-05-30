@@ -45,13 +45,27 @@
 
   <!-- Main workspace -->
   <main class="workspace">
-    <!-- Left: editor -->
+    <!-- Left: file tree -->
+    <aside class="panel panel-files">
+      <div class="panel-header">
+        <span class="panel-title">Dosyalar</span>
+        <div class="file-actions">
+          <button id="btn-new-file" class="icon-btn" title="Yeni dosya">+</button>
+          <button id="btn-upload" class="icon-btn" title="Görsel yükle">⬆</button>
+          <input id="upload-input" type="file" accept="image/*" hidden />
+        </div>
+      </div>
+      <ul id="file-tree" class="file-tree"></ul>
+    </aside>
+
+    <!-- Middle: editor -->
     <section class="panel panel-editor">
       <div class="panel-header">
-        <span class="panel-title">main.tex</span>
+        <span class="panel-title" id="editor-title">main.tex</span>
         <span class="panel-meta" id="editor-meta">— · 0 satır</span>
       </div>
       <div id="editor" class="editor-host"></div>
+      <div id="binary-preview" class="binary-preview" style="display:none"></div>
     </section>
 
     <!-- Right: PDF viewer -->
@@ -78,9 +92,7 @@
       <span class="panel-title">Log Konsolu</span>
       <button id="btn-clear-logs" class="btn-link">Temizle</button>
     </div>
-    <pre id="logs-body" class="logs-body">Hoş geldin. Düzenle, "Derle" tuşuna bas.
-
-Servis henüz hazırlanma aşamasında. API çağrıları şimdilik 503 dönüyor — derleme motoru bağlanınca gerçek PDF'ler gelecek.
+    <pre id="logs-body" class="logs-body">Hoş geldin. Sol panelden dosya ekleyebilir, "Derle" tuşuna basabilirsin.
 </pre>
   </section>
 
