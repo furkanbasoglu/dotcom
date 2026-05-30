@@ -5,13 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>LaTeX Derleyici</title>
   <link rel="stylesheet" href="/_latex/styles.css" />
-
-  <!-- Monaco Editor (CDN, ~2MB lazy-load) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/editor/editor.main.css" />
 </head>
 <body>
 
-  <!-- Top bar: branding + auth + actions -->
   <header class="topbar">
     <div class="brand">
       <span class="logo">&#955;</span>
@@ -20,11 +17,13 @@
     </div>
 
     <div class="actions">
-      <button id="btn-compile" class="btn btn-primary" disabled>
+      <button id="btn-projects" class="btn btn-ghost" style="display:none">Projelerim</button>
+      <button id="btn-save" class="btn btn-ghost" style="display:none">Kaydet</button>
+      <button id="btn-compile" class="btn btn-primary" style="display:none" disabled>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="6 3 20 12 6 21 6 3"/></svg>
         Derle
       </button>
-      <button id="btn-download" class="btn btn-ghost" disabled>
+      <button id="btn-download" class="btn btn-ghost" style="display:none" disabled>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         PDF &#304;ndir
       </button>
@@ -43,9 +42,21 @@
     </div>
   </header>
 
-  <!-- Main workspace: [dosya agaci | editor | pdf] (ayraclar surukle ile boyutlandirilir) -->
+  <!-- Projelerim (dashboard) — giris yapinca ilk burasi gelir -->
+  <section id="dashboard" class="dashboard" style="display:none">
+    <div class="dash-head">
+      <h1 class="dash-title">Projelerim</h1>
+      <button id="dash-new" class="btn btn-primary">+ Yeni Proje</button>
+    </div>
+    <div id="dash-signed-out" class="dash-signed-out" style="display:none">
+      Projelerini g&#246;rmek i&#231;in giri&#351; yap.
+    </div>
+    <p id="dash-status" class="dash-status"></p>
+    <ul id="dash-list" class="dash-list"></ul>
+  </section>
+
+  <!-- Editor workspace: [dosya agaci | editor | pdf] -->
   <main class="workspace">
-    <!-- Left: file tree (ayrica surukle-birak hedefi) -->
     <aside class="panel panel-files">
       <div class="panel-header">
         <span class="panel-title">Dosyalar</span>
@@ -61,7 +72,6 @@
 
     <div class="gutter-v" id="gutter-1"></div>
 
-    <!-- Middle: editor -->
     <section class="panel panel-editor">
       <div class="panel-header">
         <span class="panel-title" id="editor-title">main.tex</span>
@@ -73,7 +83,6 @@
 
     <div class="gutter-v" id="gutter-2"></div>
 
-    <!-- Right: PDF viewer -->
     <section class="panel panel-pdf">
       <div class="panel-header">
         <span class="panel-title">&#214;nizleme</span>
@@ -93,13 +102,12 @@
 
   <div class="gutter-h" id="gutter-logs"></div>
 
-  <!-- Bottom: log console -->
   <section class="logs" id="logs-panel">
     <div class="logs-header">
       <span class="panel-title">Log Konsolu</span>
       <button id="btn-clear-logs" class="btn-link">Temizle</button>
     </div>
-    <pre id="logs-body" class="logs-body">Ho&#351; geldin. Sol panelden dosya ekleyebilir (s&#252;r&#252;kle-b&#305;rak da olur), "Derle" tu&#351;una basabilirsin.
+    <pre id="logs-body" class="logs-body">Ho&#351; geldin. Bir proje a&#231; ya da olu&#351;tur.
 </pre>
   </section>
 
@@ -110,12 +118,6 @@
       API_BASE: '/api'
     };
   </script>
-
-  <!--
-    Monaco loader ve PDF.js bilinclli olarak burada yuklenmiyor.
-    Monaco'nun AMD loader'i (require.config + define) Clerk SDK ile cakisiyor.
-    Bu yuzden Clerk init bittikten sonra app.js icinden dinamik yukluyoruz.
-  -->
   <script type="module" src="/_latex/app.js"></script>
 </body>
 </html>

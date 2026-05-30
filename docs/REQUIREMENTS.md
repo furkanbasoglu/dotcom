@@ -13,14 +13,15 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 
 ### 1.1 Kimlik & hesap
 - ✅ Clerk ile giriş / kayıt / çıkış.
-- ⬜ Kullanıcı profilini D1'de tutma (id, e-posta, tier, oluşturulma).
-- ⬜ Tier sistemi: Free (sınırlı), Pro (sınırsız tek proje), Unlimited (sınırsız proje).
-- ⬜ Clerk → D1 senkronu (webhook ile kullanıcı oluşturma/güncelleme).
+- ✅ Kullanıcı profilini D1'de tutma (id, e-posta, tier, oluşturulma).
+- ✅ Tier sistemi tanımlı: Free (sınırlı), Pro (sınırsız tek proje), Unlimited (sınırsız proje).
+- ✅ Clerk → D1 senkronu (Yol B: ilk korumalı istekte lazy upsert; webhook'a gerek kalmadı).
 
 ### 1.2 Proje yönetimi
-- ⬜ Proje oluştur / listele / aç / yeniden adlandır / sil / kopyala (duplicate).
-- ⬜ Proje başına meta: ad, son düzenleme, ana dosya, engine tercihi.
-- ⬜ Tier'a göre proje sayısı limiti (Free: 1, Pro: 1 sınırsız boyut, Unlimited: N).
+- ✅ Proje oluştur / listele / aç / sil (API: projects.ts + projects/[id].ts).
+- ✅ Proje başına meta: ad, son düzenleme, ana dosya, engine tercihi (D1.projects).
+- ✅ Tier'a göre proje sayısı limiti (Free: 1 → 403; Unlimited: N) — backend'de enforced.
+- 🟡 Yeniden adlandır (PUT name destekli) / kopyala (duplicate) — UI henüz yok.
 - ⬜ Şablondan proje oluşturma (makale, tez, sunum, CV).
 
 ### 1.3 Dosya yönetimi
@@ -29,6 +30,7 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 - ✅ "Ana dosya" (entry) seçimi.
 - ✅ Görsel/binary yükleme (base64), editörde önizleme.
 - ✅ Sürükle-bırak ile dosya ekleme (uzantı kontrollü).
+- ✅ Kalıcı depolama: dosya içerikleri R2'de, meta D1'de (tam senkron kaydet/aç).
 - ⬜ Klasör (alt dizin) ağacı ve taşıma.
 - ⬜ Dosya indirme (tek dosya / tüm proje .zip).
 
@@ -87,8 +89,8 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 ### 2.2 Ölçeklenme & dayanıklılık
 - ✅ Kuyruk + eşzamanlılık limiti (Pi donanımına göre 2 paralel).
 - ✅ Servisler systemd ile kalıcı + otomatik yeniden başlama.
+- ✅ Kalıcı depolama: R2 (dosya içerikleri) + D1 (meta) — kuruldu ve bağlandı.
 - ⬜ Kalıcı kuyruk (BullMQ/Redis) — çoklu worker gerekince.
-- ⬜ Kalıcı depolama: R2 (dosyalar) + D1 (meta).
 - ⬜ Yatay ölçek: birden çok compile-VM, yük dağıtımı.
 
 ### 2.3 Performans
@@ -137,11 +139,12 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 çok dosya/binary + dosya ağacı + sürükle-bırak + boyutlandırılabilir paneller.
 
 **v1 — Kalıcılık & temel UX:**
-1. C: R2 + D1 + Clerk→D1 senkron + proje CRUD (kalıcı projeler).
-2. Tier sisteminin uçtan uca bağlanması.
-3. Log parse → tıklanabilir hatalar; derleme iptali.
-4. PDF zoom / sayfa gezinme.
-5. Compiler settings paneli (engine seçimi UI'dan).
+1. ✅ C: R2 + D1 + Clerk→D1 senkron + proje CRUD (kalıcı projeler) — backend bitti.
+2. 🟡 Tier sisteminin uçtan uca bağlanması (projects API D1'den okur; compile.ts hâlâ sabit 'free', güncellenecek).
+3. 🟡 Frontend "Projelerim" ekranı + kaydet/yükle akışı (yapım aşamasında).
+4. ⬜ Log parse → tıklanabilir hatalar; derleme iptali.
+5. ⬜ PDF zoom / sayfa gezinme.
+6. ⬜ Compiler settings paneli (engine seçimi UI'dan).
 
 **v2 — Verimlilik:**
 6. Otomatik tamamlama + snippet + outline.
@@ -162,3 +165,11 @@ idempotent script'ler; secret'lar repo dışında.
 tarayıcı (Monaco + dosya ağacı) → Pages Function `compile.ts` (Clerk + tier + rate limit)
 → Cloudflare Tunnel + Access (service-token) → VM `latex-api` (kuyruk + güvenli Docker)
 → PDF → tarayıcıda PDF.js render.
+
+Kalıcılık zinciri (yeni):
+tarayıcı → Pages Function `projects.ts` / `projects/[id].ts` (Clerk JWT + lazy D1 upsert)
+→ D1 `latex-db` (users/projects/files meta) + R2 `latex-projects` (dosya içerikleri).
+Tüm kullanıcı verisi Cloudflare edge'de; Raspberry Pi'da sıfır yer kaplar.
+
+Kalan tek büyük parça: frontend "Projelerim" ekranı + kaydet/yükle akışının bu API'lere bağlanması.
+

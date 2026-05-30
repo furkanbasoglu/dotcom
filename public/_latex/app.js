@@ -585,6 +585,7 @@ function showSignedOutState() {
   els.btnCompile.title = 'Derlemek için giriş yap';
   els.tierBadge.textContent = '—';
   els.tierBadge.removeAttribute('data-tier');
+  enterDashboard();
 }
 
 function showSignedInState(user) {
@@ -595,9 +596,8 @@ function showSignedInState(user) {
   els.userEmail.textContent = email;
   els.btnCompile.disabled = false;
   els.btnCompile.title = '';
-  // Tier şu an Clerk'ten gelmez; ileride D1'den çekilecek
-  els.tierBadge.textContent = 'Free';
-  els.tierBadge.setAttribute('data-tier', 'free');
+  // Gerçek tier dashboard'daki /api/projects yanıtından gelir (D1).
+  enterDashboard();
 }
 
 els.btnSignIn.addEventListener('click', () => {
@@ -733,6 +733,267 @@ async function renderPdf(blob) {
     await page.render({ canvasContext: ctx, viewport }).promise;
   }
 }
+
+// ──────────────────────────────────────────────────────────────────
+// Projelerim (dashboard) + kalıcı projeler (D1/R2)
+//   - giriş yapınca dashboard; proje seç → editör; "Kaydet" → PUT; "Projelerim" → geri
+//   - tier rozeti /api/projects yanıtından (D1)
+// ──────────────────────────────────────────────────────────────────
+const dash = {
+  screen: document.getElementById('dashboard'),
+  list: document.getElementById('dash-list'),
+  btnNew: document.getElementById('dash-new'),
+  status: document.getElementById('dash-status'),
+  signedOut: document.getElementById('dash-signed-out'),
+};
+const btnSave = document.getElementById('btn-save');
+const btnProjects = document.getElementById('btn-projects');
+
+let currentProjectId = null;
+let currentTier = 'free';
+let dirty = false;
+let dirtyListenerAttached = false;
+
+function setTierBadge(tier) {
+  const label = tier === 'unlimited' ? 'Unlimited' : tier === 'pro' ? 'Pro' : 'Free';
+  els.tierBadge.textContent = label;
+  els.tierBadge.setAttribute('data-tier', tier);
+}
+
+function guessMime(name) {
+  const e = (name.split('.').pop() || '').toLowerCase();
+  return ({ png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', pdf: 'application/pdf' })[e] || 'application/octet-stream';
+}
+
+async function authToken() {
+  return clerk?.session ? await clerk.session.getToken() : null;
+}
+
+async function api(path, opts = {}) {
+  const token = await authToken();
+  const headers = Object.assign({}, opts.headers || {});
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+  return fetch(`${CONFIG.API_BASE}${path}`, { ...opts, headers });
+}
+
+function updateSaveState() {
+  if (btnSave) btnSave.textContent = dirty ? 'Kaydet •' : 'Kaydet';
+}
+
+function attachDirtyListener() {
+  if (dirtyListenerAttached || !editor) return;
+  editor.onDidChangeModelContent(() => {
+    if (currentProjectId) { dirty = true; updateSaveState(); }
+  });
+  dirtyListenerAttached = true;
+}
+
+function enterEditor() {
+  if (dash.screen) dash.screen.style.display = 'none';
+  document.querySelector('.workspace').style.display = 'flex';
+  document.getElementById('gutter-logs').style.display = '';
+  document.getElementById('logs-panel').style.display = '';
+  if (btnSave) btnSave.style.display = '';
+  if (btnProjects) btnProjects.style.display = '';
+  els.btnCompile.style.display = '';
+  els.btnDownload.style.display = '';
+  attachDirtyListener();
+  updateSaveState();
+  if (editor) editor.layout();
+}
+
+function enterDashboard() {
+  if (dash.screen) dash.screen.style.display = 'flex';
+  document.querySelector('.workspace').style.display = 'none';
+  document.getElementById('gutter-logs').style.display = 'none';
+  document.getElementById('logs-panel').style.display = 'none';
+  if (btnSave) btnSave.style.display = 'none';
+  if (btnProjects) btnProjects.style.display = 'none';
+  els.btnCompile.style.display = 'none';
+  els.btnDownload.style.display = 'none';
+  currentProjectId = null;
+  dirty = false;
+  refreshDashboard();
+}
+
+async function refreshDashboard() {
+  if (!dash.list) return;
+  if (!clerk || !clerk.user) {
+    if (dash.signedOut) dash.signedOut.style.display = 'block';
+    dash.list.innerHTML = '';
+    if (dash.status) dash.status.textContent = '';
+    if (dash.btnNew) dash.btnNew.disabled = true;
+    els.tierBadge.textContent = '—';
+    return;
+  }
+  if (dash.signedOut) dash.signedOut.style.display = 'none';
+  if (dash.btnNew) dash.btnNew.disabled = false;
+  if (dash.status) dash.status.textContent = 'Projeler yükleniyor…';
+  try {
+    const res = await api('/projects');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { if (dash.status) dash.status.textContent = data.error || 'Projeler yüklenemedi.'; return; }
+    currentTier = data.tier || 'free';
+    setTierBadge(currentTier);
+    renderProjectList(data.projects || []);
+    if (dash.status) {
+      dash.status.textContent = (data.projects || []).length ? '' : 'Henüz projen yok. "Yeni Proje" ile başla.';
+    }
+  } catch (e) {
+    if (dash.status) dash.status.textContent = 'Projeler yüklenemedi: ' + (e?.message || e);
+  }
+}
+
+function renderProjectList(projects) {
+  dash.list.innerHTML = '';
+  for (const p of projects) {
+    const li = document.createElement('li');
+    li.className = 'dash-card';
+
+    const main = document.createElement('div');
+    main.className = 'dash-card-main';
+    const name = document.createElement('div');
+    name.className = 'dash-card-name';
+    name.textContent = p.name;
+    const meta = document.createElement('div');
+    meta.className = 'dash-card-meta';
+    const d = p.updated_at ? new Date(p.updated_at) : null;
+    meta.textContent = `${p.engine || 'pdflatex'}${d ? ' · ' + d.toLocaleString('tr-TR') : ''}`;
+    main.appendChild(name);
+    main.appendChild(meta);
+    main.addEventListener('click', () => openProject(p.id));
+    li.appendChild(main);
+
+    const del = document.createElement('button');
+    del.className = 'dash-card-del';
+    del.type = 'button';
+    del.title = 'Sil';
+    del.textContent = '🗑';
+    del.addEventListener('click', (e) => { e.stopPropagation(); deleteProject(p.id, p.name); });
+    li.appendChild(del);
+
+    dash.list.appendChild(li);
+  }
+}
+
+function loadProjectIntoEditor(data) {
+  for (const f of project.files) { if (f.kind === 'text' && f.model) f.model.dispose(); }
+  project.files = [];
+  project.activeName = null;
+
+  const files = data.files || {};
+  const entry = data.project?.entry || 'main.tex';
+  const names = Object.keys(files);
+  if (!names.length) {
+    addTextFile('main.tex', DEFAULT_TEX, { main: true });
+  } else {
+    for (const name of names) {
+      const val = files[name];
+      if (typeof val === 'string') addTextFile(name, val);
+      else if (val && val.encoding === 'base64') addBinaryFile(name, val.data, guessMime(name));
+    }
+    setMainSilent(entry);
+  }
+  renderTree();
+  openFile(getEntry());
+  dirty = false;
+  updateSaveState();
+}
+
+async function openProject(id) {
+  if (dash.status) dash.status.textContent = 'Proje açılıyor…';
+  try {
+    const res = await api(`/projects/${id}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { if (dash.status) dash.status.textContent = data.error || 'Açılamadı.'; return; }
+    loadProjectIntoEditor(data);
+    currentProjectId = id;
+    enterEditor();
+    log(`Proje açıldı: ${data.project?.name || id}`, 'ok');
+  } catch (e) {
+    if (dash.status) dash.status.textContent = 'Açılamadı: ' + (e?.message || e);
+  }
+}
+
+async function createProject() {
+  const input = prompt('Proje adı:');
+  if (input == null) return;
+  const name = input.trim();
+  if (!name) return;
+  if (dash.status) dash.status.textContent = 'Oluşturuluyor…';
+  try {
+    const res = await api('/projects', { method: 'POST', body: JSON.stringify({ name }) });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 403) { if (dash.status) dash.status.textContent = data.error || 'Proje limitine ulaştın.'; return; }
+    if (!res.ok) { if (dash.status) dash.status.textContent = data.error || 'Oluşturulamadı.'; return; }
+    loadProjectIntoEditor({ project: data.project, files: {} });
+    currentProjectId = data.project.id;
+    enterEditor();
+    log(`Proje oluşturuldu: ${data.project.name}`, 'ok');
+    await saveProject(true); // varsayılan main.tex'i R2'ye yaz
+  } catch (e) {
+    if (dash.status) dash.status.textContent = 'Oluşturulamadı: ' + (e?.message || e);
+  }
+}
+
+async function deleteProject(id, name) {
+  if (!confirm(`"${name}" silinsin mi? Bu işlem geri alınamaz.`)) return;
+  try {
+    const res = await api(`/projects/${id}`, { method: 'DELETE' });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); if (dash.status) dash.status.textContent = d.error || 'Silinemedi.'; return; }
+    log(`Proje silindi: ${name}`, 'info');
+    refreshDashboard();
+  } catch (e) {
+    if (dash.status) dash.status.textContent = 'Silinemedi: ' + (e?.message || e);
+  }
+}
+
+async function saveProject(silent) {
+  if (!currentProjectId) { log('Açık proje yok.', 'warn'); return; }
+  const entry = getEntry();
+  const files = buildCompileFiles();
+  if (!files[entry] || typeof files[entry] !== 'string') {
+    log('Ana dosya bir .tex metin dosyası olmalı.', 'warn');
+    return;
+  }
+  if (!silent) log('Kaydediliyor…', 'info');
+  if (btnSave) btnSave.disabled = true;
+  try {
+    const res = await api(`/projects/${currentProjectId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ entry, engine: 'pdflatex', files }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 413) { log(data.error || 'Boyut limiti aşıldı.', 'error'); return; }
+    if (!res.ok) { log('Kaydedilemedi: ' + (data.error || res.statusText), 'error'); return; }
+    dirty = false;
+    updateSaveState();
+    if (!silent) log(`Kaydedildi (${data.fileCount} dosya).`, 'ok');
+  } catch (e) {
+    log('Kaydetme hatası: ' + (e?.message || e), 'error');
+  } finally {
+    if (btnSave) btnSave.disabled = false;
+  }
+}
+
+async function backToProjects() {
+  if (dirty && currentProjectId) {
+    if (confirm('Kaydedilmemiş değişiklikler var. Önce kaydedilsin mi?')) await saveProject(false);
+  }
+  enterDashboard();
+}
+
+if (dash.btnNew) dash.btnNew.addEventListener('click', createProject);
+if (btnSave) btnSave.addEventListener('click', () => saveProject(false));
+if (btnProjects) btnProjects.addEventListener('click', backToProjects);
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    const inEditor = dash.screen && dash.screen.style.display === 'none';
+    if (currentProjectId && inEditor) { e.preventDefault(); saveProject(false); }
+  }
+});
 
 // ──────────────────────────────────────────────────────────────────
 // Bootstrap — Clerk ÖNCE yüklenmeli (AMD/define çakışması nedeniyle).
