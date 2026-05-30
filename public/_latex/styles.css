@@ -332,3 +332,30 @@ button {
 @media (max-width: 800px) {
   .workspace { grid-template-columns: 1fr; grid-template-rows: auto 1fr 1fr; }
 }
+/* ===== Boyutlandirilabilir paneller + surukle-birak  (styles.css'in SONUNA EKLE) =====
+   Bu blok, daha onceki grid yerlesimini flex'e cevirir; ayraclar JS ile suruklenir. */
+body { display: flex; flex-direction: column; }
+
+.workspace { display: flex; flex-direction: row; flex: 1 1 0; min-height: 0; }
+.panel-files { width: var(--w-files, 210px); flex: 0 0 auto; min-width: 0; position: relative; }
+.panel-editor { flex: var(--f-editor, 1) 1 0; min-width: 0; }
+.panel-pdf { flex: var(--f-pdf, 1) 1 0; min-width: 0; }
+
+.gutter-v, .gutter-h { background: #222; transition: background 0.12s; }
+.gutter-v { flex: 0 0 5px; cursor: col-resize; }
+.gutter-h { flex: 0 0 5px; cursor: row-resize; }
+.gutter-v:hover, .gutter-h:hover { background: #3a5570; }
+
+.logs { height: var(--h-logs, 180px); max-height: none; flex: 0 0 auto; }
+
+body.resizing { user-select: none; cursor: grabbing; }
+body.resizing .editor-host, body.resizing .pdf-host { pointer-events: none; }
+
+.panel-files.drag-over { outline: 2px dashed #7eb8f7; outline-offset: -4px; background: #11202e; }
+.drop-hint { padding: 0.4rem 0.6rem; font-size: 0.7rem; color: #555; border-top: 1px solid #1c1c1c; }
+
+@media (max-width: 800px) {
+  .workspace { flex-direction: column; }
+  .panel-files { width: auto; height: 130px; }
+  .gutter-v { display: none; }
+}

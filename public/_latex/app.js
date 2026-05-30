@@ -282,27 +282,150 @@ els.btnNewFile.addEventListener('click', () => {
 els.btnUpload.addEventListener('click', () => els.uploadInput.click());
 
 els.uploadInput.addEventListener('change', async (e) => {
-  const file = e.target.files && e.target.files[0];
-  if (!file) return;
-  try {
-    if (file.size > 8 * 1024 * 1024) {
-      log('Görsel çok büyük (>8MB).', 'warn');
-      return;
-    }
-    const b64 = await fileToBase64(file);
-    let name = file.name.replace(/\s+/g, '_');
-    if (!validName(name)) name = 'gorsel_' + Date.now();
-    if (findFile(name)) name = Date.now() + '_' + name;
-    addBinaryFile(name, b64, file.type);
-    renderTree();
-    openFile(name);
-    log(`Yüklendi: ${name} (${(file.size / 1024).toFixed(1)} KB)`, 'ok');
-  } catch (err) {
-    log('Görsel yüklenemedi: ' + (err?.message || err), 'error');
-  } finally {
-    e.target.value = '';
-  }
+  const files = e.target.files;
+  if (files && files.length) await ingestFiles(files);
+  e.target.value = '';
 });
+
+// ──────────────────────────────────────────────────────────────────
+// Dosya alma (upload + sürükle-bırak ortak yolu)
+// ──────────────────────────────────────────────────────────────────
+const TEXT_EXTS = ['tex', 'bib', 'cls', 'sty', 'txt', 'md', 'tikz', 'def', 'bbl'];
+const BIN_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'pdf'];
+
+function extOf(name) {
+  const m = name.toLowerCase().match(/\.([a-z0-9]+)$/);
+  return m ? m[1] : '';
+}
+
+function readText(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(new Error('Dosya okunamadı'));
+    r.readAsText(file);
+  });
+}
+
+async function ingestFiles(fileList) {
+  if (!editor) { log('Editör henüz hazır değil.', 'warn'); return; }
+  for (const file of Array.from(fileList)) {
+    const ext = extOf(file.name);
+    let name = file.name.replace(/\s+/g, '_');
+    if (!validName(name)) name = 'dosya_' + Date.now();
+    if (findFile(name)) name = Date.now() + '_' + name;
+    try {
+      if (TEXT_EXTS.includes(ext)) {
+        if (file.size > 2 * 1024 * 1024) { log(`Çok büyük metin dosyası: ${file.name}`, 'warn'); continue; }
+        addTextFile(name, await readText(file));
+        log(`Eklendi: ${name}`, 'ok');
+      } else if (BIN_EXTS.includes(ext)) {
+        if (file.size > 8 * 1024 * 1024) { log(`Görsel/PDF çok büyük: ${file.name}`, 'warn'); continue; }
+        addBinaryFile(name, await fileToBase64(file), file.type || 'application/octet-stream');
+        log(`Eklendi: ${name} (${(file.size / 1024).toFixed(1)} KB)`, 'ok');
+      } else {
+        log(`Desteklenmeyen uzantı: ${file.name} (.${ext})`, 'warn');
+        continue;
+      }
+      renderTree();
+      openFile(name);
+    } catch (err) {
+      log(`Eklenemedi (${file.name}): ${err?.message || err}`, 'error');
+    }
+  }
+}
+
+function initDropZone() {
+  const zone = document.querySelector('.panel-files');
+  if (!zone) return;
+  ['dragenter', 'dragover'].forEach((ev) => zone.addEventListener(ev, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    zone.classList.add('drag-over');
+  }));
+  ['dragleave', 'dragend'].forEach((ev) => zone.addEventListener(ev, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (ev === 'dragleave' && zone.contains(e.relatedTarget)) return;
+    zone.classList.remove('drag-over');
+  }));
+  zone.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    zone.classList.remove('drag-over');
+    const files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files.length) await ingestFiles(files);
+  });
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Boyutlandırılabilir paneller (sürüklenebilir ayraçlar)
+//  --w-files: dosya paneli genişliği (px)
+//  --f-editor / --f-pdf: editör/PDF flex-grow oranı
+//  --h-logs: log paneli yüksekliği (px)
+// ──────────────────────────────────────────────────────────────────
+function setupVResizer(gutter, kind) {
+  if (!gutter) return;
+  let startX = 0, startFilesW = 0, startEditorW = 0, startPdfW = 0;
+  const onMove = (e) => {
+    const dx = e.clientX - startX;
+    if (kind === 'files') {
+      const w = Math.min(520, Math.max(120, startFilesW + dx));
+      document.documentElement.style.setProperty('--w-files', w + 'px');
+    } else {
+      const eW = Math.max(160, startEditorW + dx);
+      const pW = Math.max(160, startPdfW - dx);
+      document.documentElement.style.setProperty('--f-editor', String(eW));
+      document.documentElement.style.setProperty('--f-pdf', String(pW));
+    }
+    if (editor) editor.layout();
+  };
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    document.body.classList.remove('resizing');
+  };
+  gutter.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    startX = e.clientX;
+    startFilesW = document.querySelector('.panel-files').getBoundingClientRect().width;
+    startEditorW = document.querySelector('.panel-editor').getBoundingClientRect().width;
+    startPdfW = document.querySelector('.panel-pdf').getBoundingClientRect().width;
+    document.body.classList.add('resizing');
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+function setupHResizer(gutter) {
+  if (!gutter) return;
+  let startY = 0, startH = 0;
+  const onMove = (e) => {
+    const dy = e.clientY - startY;
+    const h = Math.min(window.innerHeight * 0.7, Math.max(60, startH - dy));
+    document.documentElement.style.setProperty('--h-logs', h + 'px');
+    if (editor) editor.layout();
+  };
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    document.body.classList.remove('resizing');
+  };
+  gutter.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    startY = e.clientY;
+    startH = document.querySelector('.logs').getBoundingClientRect().height;
+    document.body.classList.add('resizing');
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+function initResizers() {
+  setupVResizer(document.getElementById('gutter-1'), 'files');
+  setupVResizer(document.getElementById('gutter-2'), 'split');
+  setupHResizer(document.getElementById('gutter-logs'));
+}
 
 // ──────────────────────────────────────────────────────────────────
 // Monaco editor
@@ -618,4 +741,6 @@ async function renderPdf(blob) {
   log('Sistem başlatılıyor…', 'info');
   await initClerk();
   await initEditor();
+  initResizers();
+  initDropZone();
 })();

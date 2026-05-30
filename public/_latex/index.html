@@ -14,7 +14,7 @@
   <!-- Top bar: branding + auth + actions -->
   <header class="topbar">
     <div class="brand">
-      <span class="logo">λ</span>
+      <span class="logo">&#955;</span>
       <span class="title">LaTeX Derleyici</span>
       <span class="tier-badge" id="tier-badge">Free</span>
     </div>
@@ -26,52 +26,57 @@
       </button>
       <button id="btn-download" class="btn btn-ghost" disabled>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        PDF İndir
+        PDF &#304;ndir
       </button>
     </div>
 
     <div class="auth">
-      <div id="auth-loading" class="auth-msg">Yükleniyor…</div>
+      <div id="auth-loading" class="auth-msg">Y&#252;kleniyor&#8230;</div>
       <div id="auth-signed-out" class="auth-section" style="display:none">
-        <button id="btn-sign-in" class="btn btn-ghost">Giriş Yap</button>
-        <button id="btn-sign-up" class="btn btn-primary-outline">Kayıt Ol</button>
+        <button id="btn-sign-in" class="btn btn-ghost">Giri&#351; Yap</button>
+        <button id="btn-sign-up" class="btn btn-primary-outline">Kay&#305;t Ol</button>
       </div>
       <div id="auth-signed-in" class="auth-section" style="display:none">
         <span class="user-email" id="user-email"></span>
-        <button id="btn-sign-out" class="btn btn-ghost btn-small">Çıkış</button>
+        <button id="btn-sign-out" class="btn btn-ghost btn-small">&#199;&#305;k&#305;&#351;</button>
       </div>
     </div>
   </header>
 
-  <!-- Main workspace -->
+  <!-- Main workspace: [dosya agaci | editor | pdf] (ayraclar surukle ile boyutlandirilir) -->
   <main class="workspace">
-    <!-- Left: file tree -->
+    <!-- Left: file tree (ayrica surukle-birak hedefi) -->
     <aside class="panel panel-files">
       <div class="panel-header">
         <span class="panel-title">Dosyalar</span>
         <div class="file-actions">
           <button id="btn-new-file" class="icon-btn" title="Yeni dosya">+</button>
-          <button id="btn-upload" class="icon-btn" title="Görsel yükle">⬆</button>
-          <input id="upload-input" type="file" accept="image/*" hidden />
+          <button id="btn-upload" class="icon-btn" title="Dosya y&#252;kle">&#8593;</button>
+          <input id="upload-input" type="file" multiple accept=".tex,.bib,.cls,.sty,.txt,.md,.tikz,.def,.bbl,image/*,.pdf" hidden />
         </div>
       </div>
       <ul id="file-tree" class="file-tree"></ul>
+      <div class="drop-hint">Dosya s&#252;r&#252;kleyip b&#305;rakabilirsin</div>
     </aside>
+
+    <div class="gutter-v" id="gutter-1"></div>
 
     <!-- Middle: editor -->
     <section class="panel panel-editor">
       <div class="panel-header">
         <span class="panel-title" id="editor-title">main.tex</span>
-        <span class="panel-meta" id="editor-meta">— · 0 satır</span>
+        <span class="panel-meta" id="editor-meta">&#8212; &#183; 0 sat&#305;r</span>
       </div>
       <div id="editor" class="editor-host"></div>
       <div id="binary-preview" class="binary-preview" style="display:none"></div>
     </section>
 
+    <div class="gutter-v" id="gutter-2"></div>
+
     <!-- Right: PDF viewer -->
     <section class="panel panel-pdf">
       <div class="panel-header">
-        <span class="panel-title">Önizleme</span>
+        <span class="panel-title">&#214;nizleme</span>
         <span class="panel-meta" id="pdf-meta">PDF yok</span>
       </div>
       <div id="pdf-viewer" class="pdf-host">
@@ -80,11 +85,13 @@
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
           </svg>
-          <p>Derleme yapınca PDF burada görünecek.</p>
+          <p>Derleme yap&#305;nca PDF burada g&#246;r&#252;necek.</p>
         </div>
       </div>
     </section>
   </main>
+
+  <div class="gutter-h" id="gutter-logs"></div>
 
   <!-- Bottom: log console -->
   <section class="logs" id="logs-panel">
@@ -92,11 +99,10 @@
       <span class="panel-title">Log Konsolu</span>
       <button id="btn-clear-logs" class="btn-link">Temizle</button>
     </div>
-    <pre id="logs-body" class="logs-body">Hoş geldin. Sol panelden dosya ekleyebilir, "Derle" tuşuna basabilirsin.
+    <pre id="logs-body" class="logs-body">Ho&#351; geldin. Sol panelden dosya ekleyebilir (s&#252;r&#252;kle-b&#305;rak da olur), "Derle" tu&#351;una basabilirsin.
 </pre>
   </section>
 
-  <!-- Clerk publishable key — Astro wrapper iframe'e query param ile geçirir -->
   <script>
     const _params = new URLSearchParams(location.search);
     window.__APP_CONFIG__ = {
@@ -106,13 +112,10 @@
   </script>
 
   <!--
-    Monaco loader ve PDF.js bilinçli olarak burada yüklenmiyor.
-    Monaco'nun AMD loader'ı (require.config + define) Clerk SDK ile çakışıyor
-    ("Can only have one anonymous define call per script file" hatası).
-    Bu yüzden Clerk init bittikten sonra app.js içinden dinamik yüklüyoruz.
+    Monaco loader ve PDF.js bilinclli olarak burada yuklenmiyor.
+    Monaco'nun AMD loader'i (require.config + define) Clerk SDK ile cakisiyor.
+    Bu yuzden Clerk init bittikten sonra app.js icinden dinamik yukluyoruz.
   -->
-
-  <!-- Main app -->
   <script type="module" src="/_latex/app.js"></script>
 </body>
 </html>
