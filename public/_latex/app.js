@@ -562,13 +562,22 @@ async function initClerk() {
       });
     }
 
+    // Clerk listener her session güncellemesinde fırlar (token refresh, profile load).
+    // Yalnız kullanıcı KİMLİĞİ değiştiğinde dashboard'a dön — aynı user için no-op.
+    // Aksi halde compile sırasında getToken() listener'ı tetikleyip projeden atıyor.
+    let lastUserId; // undefined = henüz hiç çağrılmadı
     clerk.addListener(({ user }) => {
+      const newId = user?.id || null;
+      const userChanged = lastUserId !== undefined && lastUserId !== newId;
       if (user) showSignedInState(user);
       else showSignedOutState();
+      if (userChanged) enterDashboard();
+      lastUserId = newId;
     });
 
-    if (clerk.user) showSignedInState(clerk.user);
-    else showSignedOutState();
+    if (clerk.user) { showSignedInState(clerk.user); lastUserId = clerk.user.id; }
+    else { showSignedOutState(); lastUserId = null; }
+    enterDashboard(); // ilk açılışta her hâlükârda dashboard ekranı
 
     log('Clerk hazır.', 'ok');
   } catch (err) {
@@ -577,6 +586,8 @@ async function initClerk() {
   }
 }
 
+// NOT: bu iki fonksiyon SADECE üst bar UI'sini günceller. Dashboard navigasyonu
+// listener'da (user değişimine bağlı) ya da bootstrap'ta yapılır.
 function showSignedOutState() {
   els.authLoading.style.display = 'none';
   els.authSignedOut.style.display = 'flex';
@@ -585,7 +596,6 @@ function showSignedOutState() {
   els.btnCompile.title = 'Derlemek için giriş yap';
   els.tierBadge.textContent = '—';
   els.tierBadge.removeAttribute('data-tier');
-  enterDashboard();
 }
 
 function showSignedInState(user) {
@@ -597,7 +607,6 @@ function showSignedInState(user) {
   els.btnCompile.disabled = false;
   els.btnCompile.title = '';
   // Gerçek tier dashboard'daki /api/projects yanıtından gelir (D1).
-  enterDashboard();
 }
 
 els.btnSignIn.addEventListener('click', () => {
