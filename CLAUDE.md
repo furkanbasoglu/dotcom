@@ -143,10 +143,12 @@ D1 dosya gösterimi ↔ API sözleşmesi: metin → JSON string; binary → `{ e
 **Bitti (✅):** izole VM + güvenli derleme + tunnel + Access + kuyruk; çok dosya/binary;
 dosya ağacı + sürükle-bırak + boyutlandırılabilir paneller; D1+R2+KV; Clerk→D1 lazy upsert;
 proje listele/oluştur/aç/kaydet/sil + tier limiti; "Projelerim" dashboard; özel modal;
-compile.ts tier'ı D1'den okur + binary boyutu limite dahil.
+compile.ts tier'ı D1'den okur + binary boyutu limite dahil;
+log parse → tıklanabilir hata/uyarı tanıları → editörde ilgili satıra atlama.
 
 **Kalan / sıradaki:**
-1. Log parse → tıklanınca editörde ilgili satıra gitme; derlemeyi iptal.
+1. Derleme iptal (cancel) — frontend AbortController + Pages function abort + tunnel/VM
+   process kill. VM koduna dokunmak gerektiğinden ayrı plan; bu repo tek başına bitiremez.
 2. PDF zoom / sayfa gezinme.
 3. UI'dan engine/derleme ayarları seçimi (compiler settings).
 4. Otomatik tamamlama / snippet / outline; otomatik kaydetme; şablonlar; SyncTeX.

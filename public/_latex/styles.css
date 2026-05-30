@@ -272,6 +272,18 @@ button {
 .logs-body .log-ok    { color: #8fda9d; }
 .logs-body .log-info  { color: #a0c0e0; }
 
+/* Tıklanabilir tanı satırı (log parse'tan) */
+.logs-body .log-clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+  text-underline-offset: 2px;
+}
+.logs-body .log-clickable:hover {
+  background: rgba(255, 255, 255, 0.06);
+  text-decoration-color: currentColor;
+}
+
 /* === Responsive === */
 @media (max-width: 800px) {
   .workspace {

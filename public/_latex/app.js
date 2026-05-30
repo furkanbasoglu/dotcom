@@ -626,6 +626,114 @@ els.btnSignOut.addEventListener('click', async () => {
 });
 
 // ──────────────────────────────────────────────────────────────────
+// LaTeX log parse + tıklanabilir hata satırı
+//
+// Backend `error.log` döndürüyor (compile.ts). Burada iki yaygın formatı
+// parse ediyoruz:
+//   1) Varsayılan TeX: `! Error msg` + sonraki satırlarda `l.NN ...`
+//   2) latexmk -file-line-error: `./main.tex:42: LaTeX Error: ...`
+// Ek olarak `LaTeX Warning: ... on input line NN` uyarıları.
+//
+// Dosya bağlamı izleme (parens ile) LaTeX log formatında notoryze karışık;
+// MVP'de yalnız fallback olarak entry dosyasını kullanıyoruz. Sonra geliştirilebilir.
+// ──────────────────────────────────────────────────────────────────
+function parseLatexLog(logText, entryFile) {
+  const diagnostics = [];
+  if (!logText) return diagnostics;
+  const lines = String(logText).split('\n');
+  const fallbackFile = entryFile || 'main.tex';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Format 1: file:line: error
+    const fileLine = line.match(/^(?:\.\/|\/)?([^\s:()]+\.(?:tex|sty|cls|bib|aux)):(\d+):\s*(.+)$/);
+    if (fileLine) {
+      diagnostics.push({
+        severity: 'error',
+        file: fileLine[1],
+        line: parseInt(fileLine[2], 10),
+        message: fileLine[3].trim(),
+      });
+      continue;
+    }
+
+    // Format 2: ! ... + sonraki satırlarda l.NN
+    if (line.startsWith('! ')) {
+      const message = line.slice(2).trim();
+      let lineNum = null;
+      for (let j = i + 1; j < Math.min(i + 12, lines.length); j++) {
+        const m = lines[j].match(/^l\.(\d+)/);
+        if (m) { lineNum = parseInt(m[1], 10); break; }
+        if (lines[j].startsWith('! ')) break;
+      }
+      diagnostics.push({
+        severity: 'error',
+        file: fallbackFile,
+        line: lineNum,
+        message,
+      });
+      continue;
+    }
+
+    // LaTeX Warning: ... (rakam mesajın herhangi bir yerinde olabilir)
+    const warn = line.match(/^(?:LaTeX|Package\s+\S+)\s+Warning:\s+(.+)$/);
+    if (warn) {
+      const msg = warn[1].trim();
+      const lineMatch = msg.match(/on input line (\d+)/);
+      diagnostics.push({
+        severity: 'warning',
+        file: fallbackFile,
+        line: lineMatch ? parseInt(lineMatch[1], 10) : null,
+        message: msg,
+      });
+    }
+  }
+  return diagnostics;
+}
+
+function jumpToError(file, line) {
+  if (!editor) return;
+  if (file) {
+    const f = findFile(file);
+    if (f && f.kind === 'text') openFile(file);
+  }
+  if (line != null && Number.isFinite(line)) {
+    setTimeout(() => {
+      try {
+        editor.revealLineInCenter(line);
+        editor.setPosition({ lineNumber: line, column: 1 });
+        editor.focus();
+      } catch { /* satır model dışıysa sessiz geç */ }
+    }, 50);
+  }
+}
+
+function logClickable(diag) {
+  const time = new Date().toTimeString().slice(0, 8);
+  const span = document.createElement('span');
+  const sev = diag.severity === 'warning' ? 'warn' : 'error';
+  span.className = `log-${sev} log-clickable`;
+  const where = diag.file + (diag.line != null ? `:${diag.line}` : '');
+  span.textContent = `[${time}] ▸ ${where}  ${diag.message}\n`;
+  span.title = diag.line != null ? 'Editörde bu satıra git' : 'Satır bilgisi yok';
+  if (diag.line != null) span.addEventListener('click', () => jumpToError(diag.file, diag.line));
+  els.logsBody.appendChild(span);
+  els.logsBody.scrollTop = els.logsBody.scrollHeight;
+}
+
+// Hata logunu yapılandırılmış göster: önce tıklanabilir tanılar, sonra ham log.
+function renderCompileErrorLog(rawLog, entryFile) {
+  const diags = parseLatexLog(rawLog, entryFile);
+  if (diags.length) {
+    log(`Bulunan tanılar (${diags.length}) — satıra atlamak için tıkla:`, 'info');
+    for (const d of diags) logClickable(d);
+    log('— Ham log:', 'info');
+  }
+  log(rawLog, 'error');
+}
+
+// ──────────────────────────────────────────────────────────────────
 // Compile flow
 // ──────────────────────────────────────────────────────────────────
 els.btnCompile.addEventListener('click', async () => {
@@ -680,7 +788,7 @@ els.btnCompile.addEventListener('click', async () => {
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       log('Hata: ' + (data.error || res.statusText), 'error');
-      if (data.log) log(data.log, 'error');
+      if (data.log) renderCompileErrorLog(data.log, entry);
       return;
     }
 
@@ -693,7 +801,7 @@ els.btnCompile.addEventListener('click', async () => {
       log(`Derleme başarılı (${(blob.size / 1024).toFixed(1)} KB).`, 'ok');
     } else {
       const data = await res.json().catch(() => ({}));
-      if (data.log) log(data.log, 'error');
+      if (data.log) renderCompileErrorLog(data.log, entry);
       else log('Beklenmedik yanıt.', 'error');
     }
   } catch (err) {

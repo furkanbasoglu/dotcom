@@ -49,9 +49,9 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 - ✅ Engine seçimi backend'de: pdflatex / xelatex / lualatex.
 - ✅ Eşzamanlılık kuyruğu + tier önceliği + per-user limit.
 - ✅ Bibliyografya (latexmk biber/bibtex'i otomatik çağırır).
-- 🟡 Hata/log gösterimi (ham log var; satıra tıklanabilir hatalar yok).
+- ✅ Hata/log gösterimi (ham log + tıklanabilir tanılar — error ve LaTeX Warning).
 - ⬜ UI'dan engine ve derleme ayarları seçimi (compiler settings paneli).
-- ⬜ Log parse → tıklanınca editörde ilgili satıra gitme.
+- ✅ Log parse → tıklanınca editörde ilgili satıra gitme.
 - ⬜ Derlemeyi iptal etme (cancel).
 - ⬜ SyncTeX: PDF ↔ kaynak çift yönlü atlama.
 - ⬜ Derleme önbelleği (değişmeyen projeyi yeniden derlememe).
@@ -142,7 +142,7 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 1. ✅ C: R2 + D1 + Clerk→D1 senkron + proje CRUD (kalıcı projeler) — backend bitti.
 2. ✅ Tier sisteminin uçtan uca bağlanması (projects API D1'den okur; compile.ts D1'den okur, binary boyut limite dahil).
 3. 🟡 Frontend "Projelerim" ekranı + kaydet/yükle akışı (yapım aşamasında).
-4. ⬜ Log parse → tıklanabilir hatalar; derleme iptali.
+4. 🟡 Log parse ✅ (tıklanabilir hatalar/uyarılar) + derleme iptali ⬜.
 5. ⬜ PDF zoom / sayfa gezinme.
 6. ⬜ Compiler settings paneli (engine seçimi UI'dan).
 
