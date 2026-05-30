@@ -86,6 +86,17 @@
     <section class="panel panel-pdf">
       <div class="panel-header">
         <span class="panel-title">&#214;nizleme</span>
+        <div class="pdf-toolbar" id="pdf-toolbar">
+          <button id="pdf-zoom-out" class="pdf-btn" title="Uzakla&#351;t&#305;r" disabled>&#8722;</button>
+          <span id="pdf-zoom-badge" class="pdf-zoom-badge">&#8212;</span>
+          <button id="pdf-zoom-in" class="pdf-btn" title="Yak&#305;nla&#351;t&#305;r" disabled>+</button>
+          <button id="pdf-fit-width" class="pdf-btn" title="Geni&#351;li&#287;e s&#305;&#287;d&#305;r" disabled>&#8596;</button>
+          <span class="pdf-sep"></span>
+          <button id="pdf-prev" class="pdf-btn" title="&#214;nceki sayfa" disabled>&#9664;</button>
+          <input id="pdf-page-input" class="pdf-page-input" type="number" min="1" value="1" disabled />
+          <span id="pdf-page-total" class="pdf-page-total">/ &#8212;</span>
+          <button id="pdf-next" class="pdf-btn" title="Sonraki sayfa" disabled>&#9654;</button>
+        </div>
         <span class="panel-meta" id="pdf-meta">PDF yok</span>
       </div>
       <div id="pdf-viewer" class="pdf-host">

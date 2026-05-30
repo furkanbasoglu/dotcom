@@ -65,6 +65,14 @@ const els = {
   logsBody: document.getElementById('logs-body'),
   pdfViewer: document.getElementById('pdf-viewer'),
   pdfMeta: document.getElementById('pdf-meta'),
+  pdfZoomOut: document.getElementById('pdf-zoom-out'),
+  pdfZoomBadge: document.getElementById('pdf-zoom-badge'),
+  pdfZoomIn: document.getElementById('pdf-zoom-in'),
+  pdfFitWidth: document.getElementById('pdf-fit-width'),
+  pdfPrev: document.getElementById('pdf-prev'),
+  pdfPageInput: document.getElementById('pdf-page-input'),
+  pdfPageTotal: document.getElementById('pdf-page-total'),
+  pdfNext: document.getElementById('pdf-next'),
 };
 
 let editor = null;
@@ -824,32 +832,164 @@ els.btnDownload.addEventListener('click', () => {
 });
 
 // ──────────────────────────────────────────────────────────────────
-// PDF rendering (PDF.js)
+// PDF rendering (PDF.js) — zoom + sayfa gezinme
+//
+// State:
+//   pdfState = { doc, pages: PageProxy[], canvases: HTMLCanvas[], scale, currentPage }
+//
+// Tüm sayfalar üst üste #pdf-viewer içine canvas olarak render edilir.
+// Zoom değişince tüm canvas'lar yeniden çizilir (kalite için CSS scale değil).
+// Scroll → ortadaki canvas → currentPage. Page input yalnız Enter/blur'da goto.
 // ──────────────────────────────────────────────────────────────────
-async function renderPdf(blob) {
-  els.pdfViewer.innerHTML = '';
-  const buf = await blob.arrayBuffer();
+let pdfState = null;
+let pdfBlob = null;
+let pdfjsModule = null;
 
-  const pdfjs = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.min.mjs');
-  pdfjs.GlobalWorkerOptions.workerSrc =
+async function loadPdfJs() {
+  if (pdfjsModule) return pdfjsModule;
+  pdfjsModule = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.min.mjs');
+  pdfjsModule.GlobalWorkerOptions.workerSrc =
     'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.worker.min.mjs';
+  return pdfjsModule;
+}
 
-  const doc = await pdfjs.getDocument({ data: buf }).promise;
-  els.pdfMeta.textContent = `${doc.numPages} sayfa · ${(blob.size / 1024).toFixed(1)} KB`;
+function setPdfToolbarEnabled(on) {
+  for (const b of [els.pdfZoomOut, els.pdfZoomIn, els.pdfFitWidth, els.pdfPrev, els.pdfNext, els.pdfPageInput]) {
+    if (b) b.disabled = !on;
+  }
+}
 
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const scale = 1.5;
-    const viewport = page.getViewport({ scale });
+function updateZoomBadge() {
+  if (!els.pdfZoomBadge) return;
+  els.pdfZoomBadge.textContent = pdfState ? `${Math.round(pdfState.scale * 100)}%` : '—';
+}
+
+function updatePageBadge() {
+  if (!pdfState) {
+    if (els.pdfPageInput) els.pdfPageInput.value = '1';
+    if (els.pdfPageTotal) els.pdfPageTotal.textContent = '/ —';
+    return;
+  }
+  if (els.pdfPageInput) {
+    els.pdfPageInput.value = String(pdfState.currentPage);
+    els.pdfPageInput.max = String(pdfState.pages.length);
+  }
+  if (els.pdfPageTotal) els.pdfPageTotal.textContent = `/ ${pdfState.pages.length}`;
+}
+
+async function renderAllPages() {
+  if (!pdfState) return;
+  els.pdfViewer.innerHTML = '';
+  pdfState.canvases = [];
+  for (let i = 0; i < pdfState.pages.length; i++) {
+    const page = pdfState.pages[i];
+    const viewport = page.getViewport({ scale: pdfState.scale });
     const canvas = document.createElement('canvas');
     canvas.className = 'pdf-canvas';
+    canvas.dataset.page = String(i + 1);
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const ctx = canvas.getContext('2d');
     els.pdfViewer.appendChild(canvas);
+    pdfState.canvases.push(canvas);
     await page.render({ canvasContext: ctx, viewport }).promise;
   }
 }
+
+async function renderPdf(blob) {
+  pdfBlob = blob;
+  els.pdfViewer.innerHTML = '';
+  const buf = await blob.arrayBuffer();
+  const pdfjs = await loadPdfJs();
+  const doc = await pdfjs.getDocument({ data: buf }).promise;
+
+  // tüm sayfa proxy'lerini önden çek (re-render için lazım)
+  const pages = [];
+  for (let i = 1; i <= doc.numPages; i++) pages.push(await doc.getPage(i));
+
+  pdfState = { doc, pages, canvases: [], scale: 1.5, currentPage: 1 };
+  els.pdfMeta.textContent = `${doc.numPages} sayfa · ${(blob.size / 1024).toFixed(1)} KB`;
+
+  await renderAllPages();
+  setPdfToolbarEnabled(true);
+  updateZoomBadge();
+  updatePageBadge();
+  els.pdfViewer.scrollTop = 0;
+}
+
+function setZoom(newScale) {
+  if (!pdfState) return;
+  const clamped = Math.max(0.25, Math.min(5, newScale));
+  if (Math.abs(clamped - pdfState.scale) < 0.001) return;
+  pdfState.scale = clamped;
+  renderAllPages().then(() => {
+    updateZoomBadge();
+    // mevcut sayfaya scroll'u koru
+    goToPage(pdfState.currentPage, { smooth: false });
+  });
+}
+
+function fitWidth() {
+  if (!pdfState || !pdfState.pages.length) return;
+  const containerW = els.pdfViewer.clientWidth - 32; // ~margin
+  const baseVp = pdfState.pages[0].getViewport({ scale: 1 });
+  if (containerW > 0 && baseVp.width > 0) setZoom(containerW / baseVp.width);
+}
+
+function goToPage(n, { smooth = true } = {}) {
+  if (!pdfState) return;
+  const clamped = Math.max(1, Math.min(pdfState.pages.length, Math.floor(n)));
+  pdfState.currentPage = clamped;
+  const canvas = pdfState.canvases[clamped - 1];
+  if (canvas) canvas.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+  updatePageBadge();
+}
+
+// scroll → currentPage (rAF throttled, input feedback loop'undan kaçınır)
+let pdfScrollRaf = false;
+function onPdfScroll() {
+  if (pdfScrollRaf || !pdfState || !pdfState.canvases.length) return;
+  pdfScrollRaf = true;
+  requestAnimationFrame(() => {
+    pdfScrollRaf = false;
+    const mid = els.pdfViewer.scrollTop + els.pdfViewer.clientHeight / 2;
+    for (let i = 0; i < pdfState.canvases.length; i++) {
+      const c = pdfState.canvases[i];
+      const top = c.offsetTop;
+      const bot = top + c.offsetHeight;
+      if (top <= mid && bot >= mid) {
+        if (pdfState.currentPage !== i + 1) {
+          pdfState.currentPage = i + 1;
+          if (els.pdfPageInput) els.pdfPageInput.value = String(i + 1);
+        }
+        return;
+      }
+    }
+  });
+}
+
+// ── Toolbar event wiring (DOM elemanları index.html'de var)
+if (els.pdfZoomOut) els.pdfZoomOut.addEventListener('click', () => pdfState && setZoom(pdfState.scale / 1.2));
+if (els.pdfZoomIn)  els.pdfZoomIn.addEventListener('click',  () => pdfState && setZoom(pdfState.scale * 1.2));
+if (els.pdfFitWidth) els.pdfFitWidth.addEventListener('click', fitWidth);
+if (els.pdfPrev) els.pdfPrev.addEventListener('click', () => pdfState && goToPage(pdfState.currentPage - 1));
+if (els.pdfNext) els.pdfNext.addEventListener('click', () => pdfState && goToPage(pdfState.currentPage + 1));
+if (els.pdfPageInput) {
+  els.pdfPageInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const n = parseInt(els.pdfPageInput.value, 10);
+      if (Number.isFinite(n)) goToPage(n);
+    }
+  });
+  els.pdfPageInput.addEventListener('blur', () => {
+    if (!pdfState) return;
+    const n = parseInt(els.pdfPageInput.value, 10);
+    if (Number.isFinite(n) && n !== pdfState.currentPage) goToPage(n);
+    else els.pdfPageInput.value = String(pdfState.currentPage); // geçersizse geri al
+  });
+}
+if (els.pdfViewer) els.pdfViewer.addEventListener('scroll', onPdfScroll);
 
 // ──────────────────────────────────────────────────────────────────
 // Özel modal (native prompt/confirm yerine ortada çıkan kutu)

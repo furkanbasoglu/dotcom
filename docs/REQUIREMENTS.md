@@ -59,8 +59,8 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 ### 1.6 PDF görüntüleme
 - ✅ PDF.js ile sayfa render.
 - ✅ PDF indirme.
-- ⬜ Yakınlaştır/uzaklaştır, sayfaya sığdır, genişliğe sığdır.
-- ⬜ Sayfa gezinme (git / önceki / sonraki / N/Toplam).
+- ✅ Yakınlaştır/uzaklaştır + genişliğe sığdır (sayfaya sığdır henüz yok).
+- ✅ Sayfa gezinme (önceki / sonraki / N/Toplam, sayı kutusu Enter ile git).
 - ⬜ PDF içinde metin arama.
 
 ### 1.7 İşbirliği & paylaşım (ileri faz)
@@ -143,7 +143,7 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 2. ✅ Tier sisteminin uçtan uca bağlanması (projects API D1'den okur; compile.ts D1'den okur, binary boyut limite dahil).
 3. 🟡 Frontend "Projelerim" ekranı + kaydet/yükle akışı (yapım aşamasında).
 4. 🟡 Log parse ✅ (tıklanabilir hatalar/uyarılar) + derleme iptali ⬜.
-5. ⬜ PDF zoom / sayfa gezinme.
+5. ✅ PDF zoom + sayfa gezinme (sayfaya sığdır ve metin arama hariç).
 6. ⬜ Compiler settings paneli (engine seçimi UI'dan).
 
 **v2 — Verimlilik:**

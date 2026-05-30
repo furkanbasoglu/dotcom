@@ -144,13 +144,14 @@ D1 dosya gösterimi ↔ API sözleşmesi: metin → JSON string; binary → `{ e
 dosya ağacı + sürükle-bırak + boyutlandırılabilir paneller; D1+R2+KV; Clerk→D1 lazy upsert;
 proje listele/oluştur/aç/kaydet/sil + tier limiti; "Projelerim" dashboard; özel modal;
 compile.ts tier'ı D1'den okur + binary boyutu limite dahil;
-log parse → tıklanabilir hata/uyarı tanıları → editörde ilgili satıra atlama.
+log parse → tıklanabilir hata/uyarı tanıları → editörde ilgili satıra atlama;
+PDF viewer zoom (−/+/fit-width) + sayfa gezinme (◀/▶/sayı kutusu, scroll senkron).
 
 **Kalan / sıradaki:**
 1. Derleme iptal (cancel) — frontend AbortController + Pages function abort + tunnel/VM
    process kill. VM koduna dokunmak gerektiğinden ayrı plan; bu repo tek başına bitiremez.
-2. PDF zoom / sayfa gezinme.
-3. UI'dan engine/derleme ayarları seçimi (compiler settings).
+2. UI'dan engine/derleme ayarları seçimi (compiler settings).
+3. PDF içinde metin arama + "sayfaya sığdır" modu.
 4. Otomatik tamamlama / snippet / outline; otomatik kaydetme; şablonlar; SyncTeX.
 5. **IaC**: tek SSH ile Pi+VM kurulumunu yeniden ayağa kaldıran idempotent script'ler
    (`infra/` veya ayrı repo). Detay `docs/REQUIREMENTS.md`.
