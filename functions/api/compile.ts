@@ -3,9 +3,9 @@
  *
  * LaTeX derleme isteklerini kabul eder. Sıralama:
  *   1) Clerk JWT doğrula (Authorization: Bearer <token>)
- *   2) Rate limit (KV, kullanıcı bazlı)
- *   3) Tier kontrolü (D1'den çekilir — şimdilik herkes "free")
- *   4) Body validation (entry, files, engine, size limits)
+ *   2) Tier'ı D1 users.tier'dan oku (yoksa free fallback)
+ *   3) Rate limit (KV, kullanıcı + tier bazlı)
+ *   4) Body validation (entry, files, engine, size limits — binary dosyalar da sayılır)
  *   5) Compile servisine forward (Cloudflare Tunnel → Pi VM)
  *
  * Tunnel + VM API henüz hazır değilken bu endpoint **503 Service Unavailable**
@@ -18,8 +18,9 @@
  *   - COMPILE_SERVICE_TOKEN_ID      Access service token client id
  *   - COMPILE_SERVICE_TOKEN_SECRET  Access service token secret
  *
- * Cloudflare Pages KV binding:
- *   - RATE_LIMIT                    counters for per-user rate limiting
+ * Cloudflare Pages bindings:
+ *   - RATE_LIMIT (KV)               counters for per-user rate limiting
+ *   - DB (D1 → latex-db)            users.tier lookup (optional; eksikse free fallback)
  *
  * Tier limits:
  *   - Free:      single project, 10 MB, 30s timeout, low priority
@@ -35,6 +36,7 @@ interface Env {
   COMPILE_SERVICE_TOKEN_ID?: string;
   COMPILE_SERVICE_TOKEN_SECRET?: string;
   RATE_LIMIT: KVNamespace;
+  DB?: D1Database;
 }
 
 interface KVNamespace {
@@ -42,8 +44,22 @@ interface KVNamespace {
   put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
 }
 
+interface D1Result<T = unknown> { results?: T[]; success: boolean; }
+interface D1PreparedStatement {
+  bind(...values: unknown[]): D1PreparedStatement;
+  first<T = unknown>(colName?: string): Promise<T | null>;
+  run(): Promise<D1Result>;
+  all<T = unknown>(): Promise<D1Result<T>>;
+}
+interface D1Database {
+  prepare(query: string): D1PreparedStatement;
+}
+
+type BinaryFile = { encoding: 'base64'; data: string };
+type CompileFile = string | BinaryFile;
+
 interface CompileBody {
-  files?: Record<string, string>;
+  files?: Record<string, CompileFile>;
   entry?: string;
   engine?: 'pdflatex' | 'xelatex' | 'lualatex';
 }
@@ -186,11 +202,35 @@ async function checkRateLimit(kv: KVNamespace, userId: string, tier: TierName): 
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Tier resolver (şimdilik herkes free; sonra D1'den çekilecek)
+// Tier resolver — D1'den oku. Kullanıcı D1'de yoksa veya hata varsa
+// güvenli varsayılan olarak 'free' döner (derlemeyi tier hatasıyla kırmıyoruz).
+// Kullanıcı kaydı projects API ilk çağrıldığında lazy upsert ile oluşur (_auth.ts).
 // ──────────────────────────────────────────────────────────────────
-async function resolveTier(_userId: string): Promise<TierName> {
-  // TODO: D1 SELECT tier FROM users WHERE clerk_user_id = ?
+async function resolveTier(db: D1Database | undefined, userId: string): Promise<TierName> {
+  if (!db) return 'free';
+  try {
+    const row = await db.prepare('SELECT tier FROM users WHERE id = ?1')
+      .bind(userId)
+      .first<{ tier: string }>();
+    if (row?.tier === 'pro' || row?.tier === 'unlimited') return row.tier;
+  } catch {
+    // D1 hatası — sessizce 'free'e düş
+  }
   return 'free';
+}
+
+// Toplam byte boyutu: metin dosyaları string uzunluğu, binary dosyalar base64 decode boyutu
+function calcTotalBytes(files: Record<string, CompileFile>): number {
+  let total = 0;
+  for (const v of Object.values(files)) {
+    if (typeof v === 'string') {
+      total += v.length;
+    } else if (v && typeof v === 'object' && (v as BinaryFile).encoding === 'base64') {
+      const b64len = ((v as BinaryFile).data || '').length;
+      total += Math.floor(b64len * 0.75); // base64 → ham bayt
+    }
+  }
+  return total;
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -229,7 +269,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const userId = claims.sub;
 
   // ── Tier + rate limit
-  const tier = await resolveTier(userId);
+  const tier = await resolveTier(env.DB, userId);
   const tierCfg = TIERS[tier];
   const rl = await checkRateLimit(env.RATE_LIMIT, userId, tier);
   if (!rl.ok) {
@@ -255,7 +295,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!body.files[entry]) {
     return json({ error: `Entry dosyası bulunamadı: ${entry}` }, 400);
   }
-  const totalBytes = Object.values(body.files).reduce((acc, v) => acc + (typeof v === 'string' ? v.length : 0), 0);
+  const totalBytes = calcTotalBytes(body.files);
   if (totalBytes > tierCfg.maxBytes) {
     return json({ error: `Toplam boyut tier sınırını aşıyor (${tier}: ${tierCfg.maxBytes} byte).`, tier }, 413);
   }

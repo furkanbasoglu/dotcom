@@ -140,7 +140,7 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 
 **v1 — Kalıcılık & temel UX:**
 1. ✅ C: R2 + D1 + Clerk→D1 senkron + proje CRUD (kalıcı projeler) — backend bitti.
-2. 🟡 Tier sisteminin uçtan uca bağlanması (projects API D1'den okur; compile.ts hâlâ sabit 'free', güncellenecek).
+2. ✅ Tier sisteminin uçtan uca bağlanması (projects API D1'den okur; compile.ts D1'den okur, binary boyut limite dahil).
 3. 🟡 Frontend "Projelerim" ekranı + kaydet/yükle akışı (yapım aşamasında).
 4. ⬜ Log parse → tıklanabilir hatalar; derleme iptali.
 5. ⬜ PDF zoom / sayfa gezinme.

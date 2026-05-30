@@ -1,3 +1,9 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+---
+
 # CLAUDE.md — Proje Bağlamı
 
 Bu dosya, bu repoda çalışan herhangi bir Claude (özellikle Claude Code) için
@@ -39,6 +45,8 @@ Tüm kullanıcı verisi Cloudflare edge'de yaşar; **Raspberry Pi'da sıfır yer
 
 ## 3. Repo yapısı (önemli yerler)
 
+- `src/pages/`                   — Astro public site (home/about/blog/contact/projects)
+- `public/veri_atlasi/`          — bağımsız offline CSV görselleştirme aracı (server'sız)
 - `functions/api/compile.ts`     — derleme endpoint'i (Clerk + tier + rate limit + tunnel forward)
 - `functions/api/report.ts`      — iletişim/şikayet formu (Resend + Turnstile)
 - `functions/api/_auth.ts`       — ORTAK kimlik modülü (route DEĞİL). JWT verify + D1 upsert + tier.
@@ -79,9 +87,9 @@ D1 dosya gösterimi ↔ API sözleşmesi: metin → JSON string; binary → `{ e
 
 ## 5. Verilmiş kararlar (NEDEN böyle — bozma)
 
-- **compile.ts'e dokunma** (çalışıyor). Yeni özellikler ayrı dosyalarda. Tek istisna:
-  `resolveTier()` hâlâ sabit `'free'` döndürüyor; tier'ı D1'den okuyacak şekilde
-  güncellenmesi planlı (aşağıda "kalan işler").
+- **compile.ts'e dokunma** (çalışıyor). Yeni özellikler ayrı dosyalarda.
+  (`resolveTier()` artık D1'den okuyor; kullanıcı yoksa veya D1 hatasında güvenli
+  varsayılan olarak `'free'` döner. Binary dosyalar da boyut limitine sayılır.)
 - **Kimlik senkronu = Yol B (lazy upsert)**: webhook YOK. Kullanıcı ilk korumalı istekte
   `_auth.ts` içinde D1'e upsert edilir.
 - **Depolama = R2 + D1**, GitHub DEĞİL. (GitHub API rate limit + izolasyon + gizlilik
@@ -114,6 +122,10 @@ D1 dosya gösterimi ↔ API sözleşmesi: metin → JSON string; binary → `{ e
 
 ## 7. Geliştirme akışı
 
+- **Yerel geliştirme**: `npm install` → `npm run dev` (Astro dev sunucu).
+  Üretim build'i: `npm run build` (çıktı `dist/`). Önizleme: `npm run preview`.
+  Node ≥ 22.12 gerekli (package.json `engines`).
+- **Test paketi YOK**: bu repoda otomatik test yok; doğrulama tarayıcıda yapılır.
 - **Deploy**: `git push` → Cloudflare Pages otomatik build/deploy (proje "dotcom").
   Ayrı build komutu gerekmez.
 - **D1 sorgu/şema**: `npx wrangler d1 execute latex-db --remote --command "..."`
@@ -130,15 +142,15 @@ D1 dosya gösterimi ↔ API sözleşmesi: metin → JSON string; binary → `{ e
 
 **Bitti (✅):** izole VM + güvenli derleme + tunnel + Access + kuyruk; çok dosya/binary;
 dosya ağacı + sürükle-bırak + boyutlandırılabilir paneller; D1+R2+KV; Clerk→D1 lazy upsert;
-proje listele/oluştur/aç/kaydet/sil + tier limiti; "Projelerim" dashboard; özel modal.
+proje listele/oluştur/aç/kaydet/sil + tier limiti; "Projelerim" dashboard; özel modal;
+compile.ts tier'ı D1'den okur + binary boyutu limite dahil.
 
 **Kalan / sıradaki:**
-1. `compile.ts` tier'ı D1'den okusun (şu an sabit 'free') + binary boyutunu da limite saysın.
-2. Log parse → tıklanınca editörde ilgili satıra gitme; derlemeyi iptal.
-3. PDF zoom / sayfa gezinme.
-4. UI'dan engine/derleme ayarları seçimi (compiler settings).
-5. Otomatik tamamlama / snippet / outline; otomatik kaydetme; şablonlar; SyncTeX.
-6. **IaC**: tek SSH ile Pi+VM kurulumunu yeniden ayağa kaldıran idempotent script'ler
+1. Log parse → tıklanınca editörde ilgili satıra gitme; derlemeyi iptal.
+2. PDF zoom / sayfa gezinme.
+3. UI'dan engine/derleme ayarları seçimi (compiler settings).
+4. Otomatik tamamlama / snippet / outline; otomatik kaydetme; şablonlar; SyncTeX.
+5. **IaC**: tek SSH ile Pi+VM kurulumunu yeniden ayağa kaldıran idempotent script'ler
    (`infra/` veya ayrı repo). Detay `docs/REQUIREMENTS.md`.
 
 Ayrıntılı liste ve öncelik: `docs/REQUIREMENTS.md`.
