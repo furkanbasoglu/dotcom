@@ -177,12 +177,12 @@ function openFile(name) {
   renderTree();
 }
 
-function deleteFile(name) {
+async function deleteFile(name) {
   const f = findFile(name);
   if (!f) return;
   if (project.files.length <= 1) { log('Son dosya silinemez.', 'warn'); return; }
   if (f.isMain) { log('Ana dosya silinemez. Önce başka bir dosyayı ana yap.', 'warn'); return; }
-  if (!confirm(`"${name}" silinsin mi?`)) return;
+  if (!(await uiConfirm(`"${name}" silinsin mi?`, { okText: 'Sil', danger: true }))) return;
   if (f.kind === 'text' && f.model) f.model.dispose();
   project.files = project.files.filter((x) => x !== f);
   if (project.activeName === name) openFile(getEntry());
@@ -190,10 +190,10 @@ function deleteFile(name) {
   log(`Silindi: ${name}`, 'info');
 }
 
-function renameFile(name) {
+async function renameFile(name) {
   const f = findFile(name);
   if (!f) return;
-  const input = prompt('Yeni ad:', name);
+  const input = await uiPrompt('Yeni ad:', name);
   if (input == null) return;
   const clean = input.trim();
   if (clean === name) return;
@@ -267,9 +267,9 @@ function initProject() {
 }
 
 // Dosya ağacı araç çubuğu
-els.btnNewFile.addEventListener('click', () => {
+els.btnNewFile.addEventListener('click', async () => {
   if (!editor) return;
-  const input = prompt('Yeni dosya adı (örn. bolum1.tex, sections/intro.tex):');
+  const input = await uiPrompt('Yeni dosya adı (örn. bolum1.tex, sections/intro.tex):');
   if (input == null) return;
   const clean = input.trim();
   if (!validName(clean)) { log('Geçersiz dosya adı.', 'warn'); return; }
@@ -735,6 +735,62 @@ async function renderPdf(blob) {
 }
 
 // ──────────────────────────────────────────────────────────────────
+// Özel modal (native prompt/confirm yerine ortada çıkan kutu)
+// ──────────────────────────────────────────────────────────────────
+function uiModal({ title = '', message = '', input = false, defaultValue = '', okText = 'Tamam', cancelText = 'İptal', danger = false }) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('modal-overlay');
+    const titleEl = document.getElementById('modal-title');
+    const msgEl = document.getElementById('modal-message');
+    const inputEl = document.getElementById('modal-input');
+    const okBtn = document.getElementById('modal-ok');
+    const cancelBtn = document.getElementById('modal-cancel');
+    if (!overlay) { resolve(input ? null : false); return; }
+
+    titleEl.textContent = title;
+    titleEl.style.display = title ? 'block' : 'none';
+    msgEl.textContent = message;
+    msgEl.style.display = message ? 'block' : 'none';
+    inputEl.style.display = input ? 'block' : 'none';
+    if (input) inputEl.value = defaultValue;
+    okBtn.textContent = okText;
+    cancelBtn.textContent = cancelText;
+    okBtn.classList.toggle('btn-danger', !!danger);
+
+    overlay.style.display = 'flex';
+    setTimeout(() => { if (input) { inputEl.focus(); inputEl.select(); } else okBtn.focus(); }, 0);
+
+    function cleanup(result) {
+      overlay.style.display = 'none';
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('mousedown', onBackdrop);
+      document.removeEventListener('keydown', onKey, true);
+      resolve(result);
+    }
+    function onOk() { cleanup(input ? inputEl.value : true); }
+    function onCancel() { cleanup(input ? null : false); }
+    function onBackdrop(e) { if (e.target === overlay) onCancel(); }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+      else if (e.key === 'Enter') { e.preventDefault(); onOk(); }
+    }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('mousedown', onBackdrop);
+    document.addEventListener('keydown', onKey, true);
+  });
+}
+
+function uiPrompt(message, defaultValue = '', title = '') {
+  return uiModal({ title, message, input: true, defaultValue, okText: 'Tamam', cancelText: 'İptal' });
+}
+
+function uiConfirm(message, { okText = 'Tamam', cancelText = 'Vazgeç', danger = false, title = '' } = {}) {
+  return uiModal({ title, message, input: false, okText, cancelText, danger });
+}
+
+// ──────────────────────────────────────────────────────────────────
 // Projelerim (dashboard) + kalıcı projeler (D1/R2)
 //   - giriş yapınca dashboard; proje seç → editör; "Kaydet" → PUT; "Projelerim" → geri
 //   - tier rozeti /api/projects yanıtından (D1)
@@ -917,7 +973,7 @@ async function openProject(id) {
 }
 
 async function createProject() {
-  const input = prompt('Proje adı:');
+  const input = await uiPrompt('Proje adı:');
   if (input == null) return;
   const name = input.trim();
   if (!name) return;
@@ -938,7 +994,7 @@ async function createProject() {
 }
 
 async function deleteProject(id, name) {
-  if (!confirm(`"${name}" silinsin mi? Bu işlem geri alınamaz.`)) return;
+  if (!(await uiConfirm(`"${name}" silinsin mi? Bu işlem geri alınamaz.`, { okText: 'Sil', danger: true }))) return;
   try {
     const res = await api(`/projects/${id}`, { method: 'DELETE' });
     if (!res.ok) { const d = await res.json().catch(() => ({})); if (dash.status) dash.status.textContent = d.error || 'Silinemedi.'; return; }
@@ -979,7 +1035,7 @@ async function saveProject(silent) {
 
 async function backToProjects() {
   if (dirty && currentProjectId) {
-    if (confirm('Kaydedilmemiş değişiklikler var. Önce kaydedilsin mi?')) await saveProject(false);
+    if (await uiConfirm('Kaydedilmemiş değişiklikler var. Önce kaydedilsin mi?', { okText: 'Kaydet', cancelText: 'Kaydetme' })) await saveProject(false);
   }
   enterDashboard();
 }

@@ -387,3 +387,24 @@ body.resizing .editor-host, body.resizing .pdf-host { pointer-events: none; }
 .dash-card-meta { font-size: 0.75rem; color: #888; }
 .dash-card-del { background: transparent; border: none; color: #777; cursor: pointer; padding: 0 0.85rem; font-size: 1rem; }
 .dash-card-del:hover { color: #e06666; background: #2a1a1a; }
+/* ===== Ozel modal (prompt/confirm yerine)  (styles.css'in SONUNA EKLE) ===== */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: none; align-items: center; justify-content: center;
+}
+.modal-box {
+  background: #1b1b1d; border: 1px solid #333; border-radius: 12px;
+  padding: 1.3rem 1.4rem; width: min(420px, 90vw);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.modal-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.5rem; }
+.modal-message { color: #ccc; margin-bottom: 0.9rem; line-height: 1.45; }
+.modal-input {
+  width: 100%; box-sizing: border-box; padding: 0.55rem 0.7rem;
+  background: #111; border: 1px solid #3a3a3a; border-radius: 7px;
+  color: #eee; font-size: 0.95rem; margin-bottom: 1rem;
+}
+.modal-input:focus { outline: none; border-color: #3a5570; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 0.6rem; }
+.btn-danger { background: #c0392b !important; border-color: #c0392b !important; color: #fff !important; }
