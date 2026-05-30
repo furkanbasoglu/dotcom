@@ -72,6 +72,12 @@
         </div>
       </div>
       <ul id="file-tree" class="file-tree"></ul>
+      <div class="outline-section">
+        <div class="panel-subheader">Outline</div>
+        <ul id="outline-list" class="outline-list">
+          <li class="outline-empty">&#8212;</li>
+        </ul>
+      </div>
       <div class="drop-hint">Dosya s&#252;r&#252;kleyip b&#305;rakabilirsin</div>
     </aside>
 
@@ -96,11 +102,17 @@
           <span id="pdf-zoom-badge" class="pdf-zoom-badge">&#8212;</span>
           <button id="pdf-zoom-in" class="pdf-btn" title="Yak&#305;nla&#351;t&#305;r" disabled>+</button>
           <button id="pdf-fit-width" class="pdf-btn" title="Geni&#351;li&#287;e s&#305;&#287;d&#305;r" disabled>&#8596;</button>
+          <button id="pdf-fit-page" class="pdf-btn" title="Sayfaya s&#305;&#287;d&#305;r" disabled>&#8645;</button>
           <span class="pdf-sep"></span>
           <button id="pdf-prev" class="pdf-btn" title="&#214;nceki sayfa" disabled>&#9664;</button>
           <input id="pdf-page-input" class="pdf-page-input" type="number" min="1" value="1" disabled />
           <span id="pdf-page-total" class="pdf-page-total">/ &#8212;</span>
           <button id="pdf-next" class="pdf-btn" title="Sonraki sayfa" disabled>&#9654;</button>
+          <span class="pdf-sep"></span>
+          <input id="pdf-search" class="pdf-search" type="search" placeholder="Ara&#8230;" disabled />
+          <span id="pdf-search-count" class="pdf-page-total">&#8212;</span>
+          <button id="pdf-search-prev" class="pdf-btn" title="&#214;nceki e&#351;le&#351;me" disabled>&#8593;</button>
+          <button id="pdf-search-next" class="pdf-btn" title="Sonraki e&#351;le&#351;me" disabled>&#8595;</button>
         </div>
         <span class="panel-meta" id="pdf-meta">PDF yok</span>
       </div>
@@ -133,6 +145,8 @@
       <div id="modal-title" class="modal-title"></div>
       <div id="modal-message" class="modal-message"></div>
       <input id="modal-input" class="modal-input" type="text" style="display:none" />
+      <label id="modal-select-label" class="modal-select-label" style="display:none"></label>
+      <select id="modal-select" class="modal-select" style="display:none"></select>
       <div class="modal-actions">
         <button id="modal-cancel" class="btn btn-ghost">&#304;ptal</button>
         <button id="modal-ok" class="btn btn-primary">Tamam</button>

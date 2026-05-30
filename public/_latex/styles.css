@@ -313,6 +313,20 @@ button {
 .pdf-page-input:disabled { opacity: 0.4; }
 .pdf-page-total { color: #777; }
 
+.pdf-search {
+  width: 6rem;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  color: #ccc;
+  padding: 0.1rem 0.4rem;
+  font-family: inherit;
+  font-size: inherit;
+  border-radius: 3px;
+}
+.pdf-search:disabled { opacity: 0.4; }
+.pdf-search::placeholder { color: #555; }
+.pdf-search::-webkit-search-cancel-button { -webkit-appearance: none; }
+
 /* === Logs === */
 .logs {
   display: flex;
@@ -387,7 +401,65 @@ button {
 }
 .icon-btn:hover { background: #1f1f1f; color: #fff; border-color: #444; }
 
-.file-tree { list-style: none; margin: 0; padding: 0.3rem; overflow: auto; flex: 1; }
+.file-tree { list-style: none; margin: 0; padding: 0.3rem; overflow: auto; flex: 1.6 1 0; min-height: 80px; }
+
+.outline-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 60px;
+  border-top: 1px solid #1c1c1c;
+}
+.panel-subheader {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.72rem;
+  color: #888;
+  font-family: "JetBrains Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #111;
+  flex-shrink: 0;
+}
+.outline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.2rem 0;
+  overflow: auto;
+  flex: 1;
+  font-size: 0.78rem;
+}
+.outline-list li {
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  color: #bbb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.outline-list li:hover { background: #1c1c1c; color: #fff; }
+.outline-list li.outline-empty { color: #555; cursor: default; }
+.outline-list li.outline-empty:hover { background: transparent; color: #555; }
+.outline-list li.outline-l1 { padding-left: 1.3rem; color: #aaa; }
+.outline-list li.outline-l2 { padding-left: 2rem; color: #999; font-size: 0.74rem; }
+
+.modal-select-label {
+  display: block;
+  margin: 0.6rem 0 0.3rem;
+  font-size: 0.82rem;
+  color: #aaa;
+}
+.modal-select {
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #e0e0e0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+.modal-select:focus { outline: none; border-color: #7eb8f7; }
 .file-item {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0.3rem 0.4rem; border-radius: 4px; cursor: pointer; gap: 0.3rem;

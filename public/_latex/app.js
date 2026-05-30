@@ -40,6 +40,35 @@ $$\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}$$
 `;
 
 // ──────────────────────────────────────────────────────────────────
+// Şablonlar — yeni projede seçilebilir (içerikleri R2'ye yazılır).
+// Hepsinin entry'si 'main.tex'.
+// ──────────────────────────────────────────────────────────────────
+const TEMPLATES = {
+  empty: {
+    label: 'Boş',
+    files: {
+      'main.tex': `\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\begin{document}\n\n\\end{document}\n`,
+    },
+  },
+  article: {
+    label: 'Makale',
+    files: { 'main.tex': DEFAULT_TEX },
+  },
+  letter: {
+    label: 'Mektup',
+    files: {
+      'main.tex': `\\documentclass{letter}\n\\usepackage[utf8]{inputenc}\n\\signature{Furkan Başoğlu}\n\\address{İstanbul, Türkiye}\n\\begin{document}\n\\begin{letter}{Sayın Alıcı\\\\ Adres satırı}\n\\opening{Sayın Yetkili,}\n\nMektubun gövdesi burada.\n\n\\closing{Saygılarımla,}\n\\end{letter}\n\\end{document}\n`,
+    },
+  },
+  beamer: {
+    label: 'Sunum (Beamer)',
+    files: {
+      'main.tex': `\\documentclass{beamer}\n\\usepackage[utf8]{inputenc}\n\\usetheme{Madrid}\n\\title{Sunum Başlığı}\n\\author{Furkan}\n\\date{\\today}\n\\begin{document}\n\\frame{\\titlepage}\n\\begin{frame}{Giriş}\n\\begin{itemize}\n\\item Birinci madde\n\\item İkinci madde\n\\end{itemize}\n\\end{frame}\n\\begin{frame}{Sonuç}\nÖzet ve kapanış.\n\\end{frame}\n\\end{document}\n`,
+    },
+  },
+};
+
+// ──────────────────────────────────────────────────────────────────
 // DOM elements
 // ──────────────────────────────────────────────────────────────────
 const els = {
@@ -74,6 +103,14 @@ const els = {
   pdfPageInput: document.getElementById('pdf-page-input'),
   pdfPageTotal: document.getElementById('pdf-page-total'),
   pdfNext: document.getElementById('pdf-next'),
+  pdfFitPage: document.getElementById('pdf-fit-page'),
+  pdfSearch: document.getElementById('pdf-search'),
+  pdfSearchPrev: document.getElementById('pdf-search-prev'),
+  pdfSearchNext: document.getElementById('pdf-search-next'),
+  pdfSearchCount: document.getElementById('pdf-search-count'),
+  outlineList: document.getElementById('outline-list'),
+  modalSelect: document.getElementById('modal-select'),
+  modalSelectLabel: document.getElementById('modal-select-label'),
 };
 
 let editor = null;
@@ -184,6 +221,7 @@ function openFile(name) {
   }
   updateEditorMeta();
   renderTree();
+  refreshOutline();
 }
 
 async function deleteFile(name) {
@@ -444,6 +482,78 @@ function initResizers() {
 // Bu yüzden Monaco loader.js'i index.html'de DEĞİL, burada — Clerk init
 // bittikten sonra — yüklüyoruz. Sıra bootstrap'ta korunmalı.
 // ──────────────────────────────────────────────────────────────────
+// LaTeX snippet'leri — Monaco completion provider.
+// '\\' yazınca ya da kelime başlangıcında tetiklenir.
+function registerLatexCompletions() {
+  if (!window.monaco) return;
+  try { monaco.languages.register({ id: 'latex' }); } catch { /* zaten kayıtlı olabilir */ }
+  monaco.languages.registerCompletionItemProvider('latex', {
+    triggerCharacters: ['\\'],
+    provideCompletionItems(model, position) {
+      const word = model.getWordUntilPosition(position);
+      const range = {
+        startLineNumber: position.lineNumber,
+        endLineNumber: position.lineNumber,
+        startColumn: word.startColumn,
+        endColumn: word.endColumn,
+      };
+      const Kind = monaco.languages.CompletionItemKind;
+      const Rules = monaco.languages.CompletionItemInsertTextRule;
+      const snip = (label, insertText, doc) => ({
+        label, kind: Kind.Snippet, insertText,
+        insertTextRules: Rules.InsertAsSnippet, range,
+        documentation: doc || ('\\' + label),
+      });
+      return {
+        suggestions: [
+          // Yapı
+          snip('section', 'section{$1}'),
+          snip('subsection', 'subsection{$1}'),
+          snip('subsubsection', 'subsubsection{$1}'),
+          snip('chapter', 'chapter{$1}'),
+          snip('paragraph', 'paragraph{$1}'),
+          // Ortamlar
+          snip('begin', 'begin{${1:env}}\n\t$0\n\\end{${1:env}}', 'Genel ortam'),
+          snip('itemize', 'begin{itemize}\n\t\\item $0\n\\end{itemize}', 'Madde işaretli liste'),
+          snip('enumerate', 'begin{enumerate}\n\t\\item $0\n\\end{enumerate}', 'Numaralı liste'),
+          snip('equation', 'begin{equation}\n\t$0\n\\end{equation}', 'Numaralı denklem'),
+          snip('align', 'begin{align}\n\t$0\n\\end{align}', 'Hizalı denklemler'),
+          snip('figure', 'begin{figure}[h]\n\t\\centering\n\t\\includegraphics[width=0.7\\textwidth]{$1}\n\t\\caption{$2}\n\t\\label{fig:$3}\n\\end{figure}', 'Figür + caption + label'),
+          snip('table', 'begin{table}[h]\n\t\\centering\n\t\\begin{tabular}{$1}\n\t\t$0\n\t\\end{tabular}\n\t\\caption{$2}\n\t\\label{tab:$3}\n\\end{table}', 'Tablo + caption'),
+          snip('item', 'item $0'),
+          // Referanslar
+          snip('label', 'label{$1}'),
+          snip('ref', 'ref{$1}'),
+          snip('cite', 'cite{$1}'),
+          snip('includegraphics', 'includegraphics[width=$1\\textwidth]{$2}'),
+          // Biçim
+          snip('textbf', 'textbf{$1}', 'Kalın'),
+          snip('textit', 'textit{$1}', 'İtalik'),
+          snip('emph', 'emph{$1}', 'Vurgu'),
+          snip('underline', 'underline{$1}', 'Altı çizili'),
+          snip('texttt', 'texttt{$1}', 'Monospace'),
+          // Matematik
+          snip('frac', 'frac{$1}{$2}', 'Kesir'),
+          snip('sqrt', 'sqrt{$1}', 'Karekök'),
+          snip('sum', 'sum_{$1}^{$2}', 'Toplam'),
+          snip('int', 'int_{$1}^{$2}', 'İntegral'),
+          snip('lim', 'lim_{$1}', 'Limit'),
+          snip('prod', 'prod_{$1}^{$2}', 'Çarpım'),
+          // Preamble
+          snip('documentclass', 'documentclass{$1}'),
+          snip('usepackage', 'usepackage{$1}'),
+          snip('title', 'title{$1}'),
+          snip('author', 'author{$1}'),
+          snip('date', 'date{\\today}'),
+          snip('maketitle', 'maketitle'),
+          snip('bibliography', 'bibliography{$1}'),
+          snip('bibliographystyle', 'bibliographystyle{$1}'),
+        ],
+      };
+    },
+  });
+}
+
 async function initEditor() {
   // 1. Monaco loader.js'i dinamik yükle (AMD global'ini şimdi kuruyor)
   await loadScript('https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js');
@@ -454,6 +564,7 @@ async function initEditor() {
       paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' },
     });
     require(['vs/editor/editor.main'], () => {
+      registerLatexCompletions();
       editor = monaco.editor.create(els.editorHost, {
         language: 'latex',
         theme: 'vs-dark',
@@ -855,7 +966,11 @@ async function loadPdfJs() {
 }
 
 function setPdfToolbarEnabled(on) {
-  for (const b of [els.pdfZoomOut, els.pdfZoomIn, els.pdfFitWidth, els.pdfPrev, els.pdfNext, els.pdfPageInput]) {
+  for (const b of [
+    els.pdfZoomOut, els.pdfZoomIn, els.pdfFitWidth, els.pdfFitPage,
+    els.pdfPrev, els.pdfNext, els.pdfPageInput,
+    els.pdfSearch, els.pdfSearchPrev, els.pdfSearchNext,
+  ]) {
     if (b) b.disabled = !on;
   }
 }
@@ -915,6 +1030,8 @@ async function renderPdf(blob) {
   setPdfToolbarEnabled(true);
   updateZoomBadge();
   updatePageBadge();
+  clearPdfSearch();
+  if (els.pdfSearch) els.pdfSearch.value = '';
   els.pdfViewer.scrollTop = 0;
 }
 
@@ -935,6 +1052,60 @@ function fitWidth() {
   const containerW = els.pdfViewer.clientWidth - 32; // ~margin
   const baseVp = pdfState.pages[0].getViewport({ scale: 1 });
   if (containerW > 0 && baseVp.width > 0) setZoom(containerW / baseVp.width);
+}
+
+function fitPage() {
+  if (!pdfState || !pdfState.pages.length) return;
+  const W = els.pdfViewer.clientWidth - 32;
+  const H = els.pdfViewer.clientHeight - 32; // pdf-canvas margin: 1rem
+  const baseVp = pdfState.pages[0].getViewport({ scale: 1 });
+  if (W <= 0 || H <= 0) return;
+  setZoom(Math.min(W / baseVp.width, H / baseVp.height));
+}
+
+// ── PDF metin arama (sayfa düzeyi — vurgu yok, eşleşmenin olduğu sayfaya atla)
+let pdfSearchState = null; // { query, matches: [{page}], current }
+
+function clearPdfSearch() {
+  pdfSearchState = null;
+  if (els.pdfSearchCount) els.pdfSearchCount.textContent = '—';
+}
+
+async function buildPdfSearch(query) {
+  if (!pdfState || !query) { clearPdfSearch(); return; }
+  const matches = [];
+  const q = query.toLowerCase();
+  for (let i = 0; i < pdfState.pages.length; i++) {
+    const content = await pdfState.pages[i].getTextContent();
+    const text = content.items.map((it) => it.str).join(' ').toLowerCase();
+    let from = 0;
+    while (true) {
+      const idx = text.indexOf(q, from);
+      if (idx === -1) break;
+      matches.push({ page: i + 1 });
+      from = idx + q.length;
+    }
+  }
+  pdfSearchState = { query, matches, current: matches.length ? 0 : -1 };
+  updateSearchCount();
+  if (matches.length) goToPage(matches[0].page);
+}
+
+function updateSearchCount() {
+  if (!els.pdfSearchCount) return;
+  if (!pdfSearchState || !pdfSearchState.matches.length) {
+    els.pdfSearchCount.textContent = pdfSearchState ? '0/0' : '—';
+    return;
+  }
+  els.pdfSearchCount.textContent = `${pdfSearchState.current + 1}/${pdfSearchState.matches.length}`;
+}
+
+function nextSearchMatch(dir = 1) {
+  if (!pdfSearchState || !pdfSearchState.matches.length) return;
+  const len = pdfSearchState.matches.length;
+  pdfSearchState.current = (pdfSearchState.current + dir + len) % len;
+  updateSearchCount();
+  goToPage(pdfSearchState.matches[pdfSearchState.current].page);
 }
 
 function goToPage(n, { smooth = true } = {}) {
@@ -973,8 +1144,26 @@ function onPdfScroll() {
 if (els.pdfZoomOut) els.pdfZoomOut.addEventListener('click', () => pdfState && setZoom(pdfState.scale / 1.2));
 if (els.pdfZoomIn)  els.pdfZoomIn.addEventListener('click',  () => pdfState && setZoom(pdfState.scale * 1.2));
 if (els.pdfFitWidth) els.pdfFitWidth.addEventListener('click', fitWidth);
+if (els.pdfFitPage) els.pdfFitPage.addEventListener('click', fitPage);
 if (els.pdfPrev) els.pdfPrev.addEventListener('click', () => pdfState && goToPage(pdfState.currentPage - 1));
 if (els.pdfNext) els.pdfNext.addEventListener('click', () => pdfState && goToPage(pdfState.currentPage + 1));
+if (els.pdfSearch) {
+  els.pdfSearch.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const q = els.pdfSearch.value.trim();
+      if (!q) { clearPdfSearch(); return; }
+      if (pdfSearchState && pdfSearchState.query === q.toLowerCase()) nextSearchMatch(1);
+      else buildPdfSearch(q.toLowerCase());
+    } else if (e.key === 'Escape') { els.pdfSearch.blur(); }
+  });
+  els.pdfSearch.addEventListener('input', () => {
+    // sorgu değişince state'i sıfırla; tekrar Enter ile arama tetiklenir
+    if (pdfSearchState && pdfSearchState.query !== els.pdfSearch.value.trim().toLowerCase()) clearPdfSearch();
+  });
+}
+if (els.pdfSearchPrev) els.pdfSearchPrev.addEventListener('click', () => nextSearchMatch(-1));
+if (els.pdfSearchNext) els.pdfSearchNext.addEventListener('click', () => nextSearchMatch(1));
 if (els.pdfPageInput) {
   els.pdfPageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -995,12 +1184,18 @@ if (els.pdfViewer) els.pdfViewer.addEventListener('scroll', onPdfScroll);
 // ──────────────────────────────────────────────────────────────────
 // Özel modal (native prompt/confirm yerine ortada çıkan kutu)
 // ──────────────────────────────────────────────────────────────────
-function uiModal({ title = '', message = '', input = false, defaultValue = '', okText = 'Tamam', cancelText = 'İptal', danger = false }) {
+function uiModal({
+  title = '', message = '', input = false, defaultValue = '',
+  selectOptions = null, selectLabel = '', selectDefault = '',
+  okText = 'Tamam', cancelText = 'İptal', danger = false,
+}) {
   return new Promise((resolve) => {
     const overlay = document.getElementById('modal-overlay');
     const titleEl = document.getElementById('modal-title');
     const msgEl = document.getElementById('modal-message');
     const inputEl = document.getElementById('modal-input');
+    const selectEl = document.getElementById('modal-select');
+    const selectLabelEl = document.getElementById('modal-select-label');
     const okBtn = document.getElementById('modal-ok');
     const cancelBtn = document.getElementById('modal-cancel');
     if (!overlay) { resolve(input ? null : false); return; }
@@ -1011,6 +1206,26 @@ function uiModal({ title = '', message = '', input = false, defaultValue = '', o
     msgEl.style.display = message ? 'block' : 'none';
     inputEl.style.display = input ? 'block' : 'none';
     if (input) inputEl.value = defaultValue;
+
+    const hasSelect = Array.isArray(selectOptions) && selectOptions.length > 0;
+    if (selectEl && selectLabelEl) {
+      if (hasSelect) {
+        selectEl.innerHTML = '';
+        for (const opt of selectOptions) {
+          const o = document.createElement('option');
+          o.value = opt.value; o.textContent = opt.label;
+          selectEl.appendChild(o);
+        }
+        selectEl.value = selectDefault || selectOptions[0].value;
+        selectEl.style.display = 'block';
+        selectLabelEl.textContent = selectLabel;
+        selectLabelEl.style.display = selectLabel ? 'block' : 'none';
+      } else {
+        selectEl.style.display = 'none';
+        selectLabelEl.style.display = 'none';
+      }
+    }
+
     okBtn.textContent = okText;
     cancelBtn.textContent = cancelText;
     okBtn.classList.toggle('btn-danger', !!danger);
@@ -1026,8 +1241,20 @@ function uiModal({ title = '', message = '', input = false, defaultValue = '', o
       document.removeEventListener('keydown', onKey, true);
       resolve(result);
     }
-    function onOk() { cleanup(input ? inputEl.value : true); }
-    function onCancel() { cleanup(input ? null : false); }
+    function buildOkResult() {
+      if (input && hasSelect) return { input: inputEl.value, select: selectEl.value };
+      if (input) return inputEl.value;
+      if (hasSelect) return selectEl.value;
+      return true;
+    }
+    function buildCancelResult() {
+      if (input && hasSelect) return null;
+      if (input) return null;
+      if (hasSelect) return null;
+      return false;
+    }
+    function onOk() { cleanup(buildOkResult()); }
+    function onCancel() { cleanup(buildCancelResult()); }
     function onBackdrop(e) { if (e.target === overlay) onCancel(); }
     function onKey(e) {
       if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
@@ -1069,12 +1296,31 @@ let currentEngine = 'pdflatex';
 let dirty = false;
 let dirtyListenerAttached = false;
 
-function setEngine(eng, { markDirty = false } = {}) {
+// ── Otomatik kaydetme (debounced 2 sn)
+let autosaveTimer = null;
+const AUTOSAVE_DEBOUNCE_MS = 2000;
+function scheduleAutosave() {
+  if (!currentProjectId) return;
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => {
+    if (dirty && currentProjectId) saveProject(true).catch(() => {});
+  }, AUTOSAVE_DEBOUNCE_MS);
+}
+function cancelAutosave() { clearTimeout(autosaveTimer); autosaveTimer = null; }
+
+function markDirty() {
+  if (!currentProjectId) return;
+  dirty = true;
+  updateSaveState();
+  scheduleAutosave();
+}
+
+function setEngine(eng, { markDirty: shouldMarkDirty = false } = {}) {
   const valid = ['pdflatex', 'xelatex', 'lualatex'];
   const next = valid.includes(eng) ? eng : 'pdflatex';
   currentEngine = next;
   if (els.engineSelect) els.engineSelect.value = next;
-  if (markDirty && currentProjectId) { dirty = true; updateSaveState(); }
+  if (shouldMarkDirty) markDirty();
 }
 
 if (els.engineSelect) {
@@ -1112,10 +1358,67 @@ function updateSaveState() {
 
 function attachDirtyListener() {
   if (dirtyListenerAttached || !editor) return;
-  editor.onDidChangeModelContent(() => {
-    if (currentProjectId) { dirty = true; updateSaveState(); }
-  });
+  editor.onDidChangeModelContent(() => { markDirty(); scheduleOutlineRefresh(); });
   dirtyListenerAttached = true;
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Outline — \section / \subsection / \subsubsection / \chapter / \part
+//  - aktif metin dosyasını parse eder
+//  - dosya açılınca anında, içerik değişiminde 400ms debounce ile yenilenir
+// ──────────────────────────────────────────────────────────────────
+function parseOutline(text) {
+  const items = [];
+  if (!text) return items;
+  const lines = text.split('\n');
+  const re = /^\s*\\((?:sub){0,2}section|chapter|part)\*?\{([^}]+)\}/;
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(re);
+    if (!m) continue;
+    const tag = m[1];
+    let level = 0;
+    if (tag.startsWith('sub')) level = (tag.match(/sub/g) || []).length;
+    items.push({ line: i + 1, level, title: m[2] });
+  }
+  return items;
+}
+
+function getActiveTextContent() {
+  if (!project.activeName) return '';
+  const f = findFile(project.activeName);
+  return (f && f.kind === 'text' && f.model) ? f.model.getValue() : '';
+}
+
+let outlineRefreshTimer = null;
+function scheduleOutlineRefresh(delay = 400) {
+  clearTimeout(outlineRefreshTimer);
+  outlineRefreshTimer = setTimeout(refreshOutline, delay);
+}
+
+function refreshOutline() {
+  if (!els.outlineList) return;
+  const items = parseOutline(getActiveTextContent());
+  els.outlineList.innerHTML = '';
+  if (!items.length) {
+    const li = document.createElement('li');
+    li.className = 'outline-empty';
+    li.textContent = '—';
+    els.outlineList.appendChild(li);
+    return;
+  }
+  for (const it of items) {
+    const li = document.createElement('li');
+    li.className = `outline-l${Math.min(it.level, 2)}`;
+    li.textContent = it.title;
+    li.title = it.title;
+    li.addEventListener('click', () => {
+      if (!editor) return;
+      editor.revealLineInCenter(it.line);
+      editor.setPosition({ lineNumber: it.line, column: 1 });
+      editor.focus();
+    });
+    els.outlineList.appendChild(li);
+  }
 }
 
 function enterEditor() {
@@ -1143,9 +1446,11 @@ function enterDashboard() {
   els.btnCompile.style.display = 'none';
   els.btnDownload.style.display = 'none';
   if (els.engineSelect) { els.engineSelect.style.display = 'none'; els.engineSelect.disabled = true; }
+  cancelAutosave();
   currentProjectId = null;
   setEngine('pdflatex'); // editör dışındayken nötr varsayılan
   dirty = false;
+  if (els.outlineList) els.outlineList.innerHTML = '<li class="outline-empty">—</li>';
   refreshDashboard();
 }
 
@@ -1250,21 +1555,31 @@ async function openProject(id) {
 }
 
 async function createProject() {
-  const input = await uiPrompt('Proje adı:');
-  if (input == null) return;
-  const name = input.trim();
+  const result = await uiModal({
+    title: 'Yeni Proje',
+    message: 'Proje adı:',
+    input: true,
+    defaultValue: '',
+    selectOptions: Object.entries(TEMPLATES).map(([key, t]) => ({ value: key, label: t.label })),
+    selectLabel: 'Şablon:',
+    selectDefault: 'article',
+  });
+  if (result == null) return;
+  const name = (result.input || '').trim();
+  const templateKey = result.select || 'article';
   if (!name) return;
+  const tpl = TEMPLATES[templateKey] || TEMPLATES.empty;
   if (dash.status) dash.status.textContent = 'Oluşturuluyor…';
   try {
     const res = await api('/projects', { method: 'POST', body: JSON.stringify({ name }) });
     const data = await res.json().catch(() => ({}));
     if (res.status === 403) { if (dash.status) dash.status.textContent = data.error || 'Proje limitine ulaştın.'; return; }
     if (!res.ok) { if (dash.status) dash.status.textContent = data.error || 'Oluşturulamadı.'; return; }
-    loadProjectIntoEditor({ project: data.project, files: {} });
+    loadProjectIntoEditor({ project: data.project, files: tpl.files });
     currentProjectId = data.project.id;
     enterEditor();
-    log(`Proje oluşturuldu: ${data.project.name}`, 'ok');
-    await saveProject(true); // varsayılan main.tex'i R2'ye yaz
+    log(`Proje oluşturuldu: ${data.project.name} (şablon: ${tpl.label})`, 'ok');
+    await saveProject(true); // şablon dosyalarını R2'ye yaz
   } catch (e) {
     if (dash.status) dash.status.textContent = 'Oluşturulamadı: ' + (e?.message || e);
   }

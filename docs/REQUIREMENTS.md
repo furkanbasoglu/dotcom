@@ -22,7 +22,7 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 - ✅ Proje başına meta: ad, son düzenleme, ana dosya, engine tercihi (D1.projects).
 - ✅ Tier'a göre proje sayısı limiti (Free: 1 → 403; Unlimited: N) — backend'de enforced.
 - 🟡 Yeniden adlandır (PUT name destekli) / kopyala (duplicate) — UI henüz yok.
-- ⬜ Şablondan proje oluşturma (makale, tez, sunum, CV).
+- ✅ Şablondan proje oluşturma (boş / makale / mektup / Beamer sunum).
 
 ### 1.3 Dosya yönetimi
 - ✅ Çok dosyalı proje (birden çok .tex, .bib, görsel).
@@ -37,12 +37,11 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 ### 1.4 Editör
 - ✅ Sözdizimi vurgulama (Monaco, latex).
 - ✅ Dosya başına ayrı model (sekme/geçiş, undo geçmişi korunur).
-- ⬜ Otomatik tamamlama (komut, ortam, \ref/\cite anahtarları).
-- ⬜ Snippet'ler (\begin{...} otomatik kapatma, tablo/şekil iskeletleri).
+- ✅ Otomatik tamamlama + snippet'ler (~35 LaTeX snippet: section, begin, frac, figure, table, vs.).
 - ⬜ Ara-değiştir (proje genelinde arama).
-- ⬜ Dosya taslağı / outline (\section ağacı, tıklayınca git).
+- ✅ Dosya taslağı / outline (\section/subsection/chapter ağacı, tıklayınca satıra git).
 - ⬜ Biçim düğmeleri (kalın, italik, liste, tablo, matematik) — opsiyonel toolbar.
-- ⬜ Otomatik kaydetme + "kaydedilmemiş değişiklik" göstergesi.
+- ✅ Otomatik kaydetme (2 sn debounced PUT) + "kaydedilmemiş değişiklik" göstergesi (•).
 
 ### 1.5 Derleme
 - ✅ İzole Docker sandbox'ta latexmk (güvenli).
@@ -59,9 +58,9 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 ### 1.6 PDF görüntüleme
 - ✅ PDF.js ile sayfa render.
 - ✅ PDF indirme.
-- ✅ Yakınlaştır/uzaklaştır + genişliğe sığdır (sayfaya sığdır henüz yok).
+- ✅ Yakınlaştır/uzaklaştır + genişliğe sığdır + sayfaya sığdır.
 - ✅ Sayfa gezinme (önceki / sonraki / N/Toplam, sayı kutusu Enter ile git).
-- ⬜ PDF içinde metin arama.
+- ✅ PDF içinde metin arama (sayfa düzeyi — eşleşmeli sayfaya atla; in-page vurgu yok).
 
 ### 1.7 İşbirliği & paylaşım (ileri faz)
 - ⬜ Salt-okunur paylaşım linki.
@@ -147,10 +146,10 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 6. 🟡 Engine seçimi UI'da (dropdown ✅, kapsamlı compiler settings paneli ⬜).
 
 **v2 — Verimlilik:**
-6. Otomatik tamamlama + snippet + outline.
-7. Otomatik kaydetme + sürüm geçmişi.
-8. Şablonlar.
-9. SyncTeX.
+6. ✅ Otomatik tamamlama + snippet + outline.
+7. 🟡 Otomatik kaydetme ✅; sürüm geçmişi ⬜.
+8. ✅ Şablonlar (boş/makale/mektup/Beamer).
+9. ⬜ SyncTeX (VM tarafında synctex üretimi gerek; ayrı oturumda).
 
 **v3 — İşbirliği:** paylaşım linki → ortak düzenleme → gerçek zamanlı.
 

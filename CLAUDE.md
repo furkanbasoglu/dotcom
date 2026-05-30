@@ -145,16 +145,20 @@ dosya ağacı + sürükle-bırak + boyutlandırılabilir paneller; D1+R2+KV; Cle
 proje listele/oluştur/aç/kaydet/sil + tier limiti; "Projelerim" dashboard; özel modal;
 compile.ts tier'ı D1'den okur + binary boyutu limite dahil;
 log parse → tıklanabilir hata/uyarı tanıları → editörde ilgili satıra atlama;
-PDF viewer zoom (−/+/fit-width) + sayfa gezinme (◀/▶/sayı kutusu, scroll senkron);
-engine seçimi UI (topbar dropdown, per-project D1'de kalıcı).
+PDF viewer zoom (−/+/fit-width/fit-page) + sayfa gezinme + PDF metin arama (sayfa düzeyi);
+engine seçimi UI (topbar dropdown, per-project D1'de kalıcı);
+otomatik kaydetme (debounced 2 sn) + şablonlar (boş/makale/mektup/Beamer) +
+outline paneli (\section ağacı, tıklayınca satıra git) + ~35 LaTeX snippet (Monaco).
 
 **Kalan / sıradaki:**
-1. Derleme iptal (cancel) — frontend AbortController + Pages function abort + tunnel/VM
-   process kill. VM koduna dokunmak gerektiğinden ayrı plan; bu repo tek başına bitiremez.
-2. PDF içinde metin arama + "sayfaya sığdır" modu.
+1. **VM oturumu** (kullanıcı kendisi yapacak, tek seferde):
+   - Derleme iptal (frontend AbortController + Pages disconnect → tunnel abort → latex-api SIGTERM).
+   - SyncTeX (latexmk -synctex=1 + .synctex.gz parse + PDF↔kaynak jump).
+2. PDF in-page metin vurgulama (PDF.js TextLayer rendering).
 3. Kapsamlı compiler settings paneli (latexmk flag'leri, output dir, vb.).
-4. Otomatik tamamlama / snippet / outline; otomatik kaydetme; şablonlar; SyncTeX.
-5. **IaC**: tek SSH ile Pi+VM kurulumunu yeniden ayağa kaldıran idempotent script'ler
+4. Proje genelinde ara-değiştir; biçim toolbar; sürüm geçmişi.
+5. Proje yeniden adlandır / kopyala UI.
+6. **IaC**: tek SSH ile Pi+VM kurulumunu yeniden ayağa kaldıran idempotent script'ler
    (`infra/` veya ayrı repo). Detay `docs/REQUIREMENTS.md`.
 
 Ayrıntılı liste ve öncelik: `docs/REQUIREMENTS.md`.
