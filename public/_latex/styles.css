@@ -249,11 +249,52 @@ button {
 }
 .placeholder p { margin: 0; font-size: 0.9rem; }
 
+.pdf-page-wrapper {
+  position: relative;
+  margin: 1rem auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.pdf-page-wrapper .pdf-canvas {
+  display: block;
+  margin: 0;
+  box-shadow: none;
+  max-width: 100%;
+}
 .pdf-canvas {
   display: block;
   margin: 1rem auto;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
   max-width: 100%;
+}
+
+/* PDF text layer (PDF.js standart pozisyonlama) */
+.pdf-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  opacity: 0.999;
+  line-height: 1;
+  -webkit-text-size-adjust: none;
+  forced-color-adjust: none;
+  z-index: 2;
+}
+.pdf-text-layer span,
+.pdf-text-layer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+.pdf-text-layer .pdf-hit {
+  background-color: rgba(255, 230, 0, 0.45);
+  border-radius: 2px;
+  color: transparent;
+  position: static;
+}
+.pdf-text-layer .pdf-hit.pdf-hit-active {
+  background-color: rgba(255, 140, 0, 0.65);
+  outline: 2px solid #ff8c00;
 }
 
 /* === PDF toolbar === */

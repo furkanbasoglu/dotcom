@@ -1,0 +1,232 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+// Planlar — özellik listesi compile.ts'teki limitlerle tutarlı.
+const PLANS = [
+  {
+    key: 'free',
+    name: 'Free',
+    price: 'Ücretsiz',
+    priceNote: 'her zaman',
+    cta: 'Mevcut Plan',
+    ctaHref: '/latex',
+    primary: false,
+    features: [
+      ['Proje sayısı', '1'],
+      ['Max proje boyutu', '10 MB'],
+      ['Saatlik derleme', '20'],
+      ['Derleme süresi', '30 sn'],
+      ['Kuyruk önceliği', 'Düşük'],
+      ['Şablon erişimi', '✓'],
+      ['Otomatik kaydetme', '✓'],
+      ['Outline + snippet', '✓'],
+      ['Paylaşım', '—'],
+      ['Öncelikli destek', '—'],
+    ],
+  },
+  {
+    key: 'pro',
+    name: 'Pro',
+    price: '₺99',
+    priceNote: '/ ay',
+    cta: 'Pro\'ya Geç',
+    ctaHref: '/yukselt/odeme?plan=pro',
+    primary: true,
+    features: [
+      ['Proje sayısı', '1 (büyük)'],
+      ['Max proje boyutu', '100 MB'],
+      ['Saatlik derleme', '200'],
+      ['Derleme süresi', '2 dk'],
+      ['Kuyruk önceliği', 'Orta'],
+      ['Şablon erişimi', '✓'],
+      ['Otomatik kaydetme', '✓'],
+      ['Outline + snippet', '✓'],
+      ['Paylaşım', 'Sınırlı'],
+      ['Öncelikli destek', 'E-posta'],
+    ],
+  },
+  {
+    key: 'unlimited',
+    name: 'Unlimited',
+    price: '₺249',
+    priceNote: '/ ay',
+    cta: 'Unlimited\'a Geç',
+    ctaHref: '/yukselt/odeme?plan=unlimited',
+    primary: false,
+    features: [
+      ['Proje sayısı', 'Sınırsız'],
+      ['Max proje boyutu', '500 MB'],
+      ['Saatlik derleme', '1000'],
+      ['Derleme süresi', '5 dk'],
+      ['Kuyruk önceliği', 'Yüksek'],
+      ['Şablon erişimi', '✓'],
+      ['Otomatik kaydetme', '✓'],
+      ['Outline + snippet', '✓'],
+      ['Paylaşım', 'Tam'],
+      ['Öncelikli destek', 'Öncelikli'],
+    ],
+  },
+];
+---
+
+<!doctype html>
+<html lang="tr">
+  <head>
+    <BaseHead
+      title="Yükselt · Plan Karşılaştırma"
+      description="LaTeX Derleyici için plan karşılaştırma — Free, Pro, Unlimited."
+    />
+    <style>
+      .wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+      h1 { font-size: 2rem; margin-bottom: 0.4rem; }
+      .lead { color: #aaa; margin-bottom: 2rem; max-width: 720px; }
+      .notice {
+        background: #1a2a3a; color: #a0c0e0; border: 1px solid #2a3a4a;
+        padding: 0.8rem 1rem; border-radius: 4px; margin-bottom: 2rem;
+        font-size: 0.9rem;
+      }
+      .plans {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+      }
+      @media (max-width: 880px) {
+        .plans { grid-template-columns: 1fr; }
+      }
+      .plan {
+        background: #141414;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+      }
+      .plan.primary {
+        border-color: #7eb8f7;
+        background: linear-gradient(180deg, #142030 0%, #141414 50%);
+        position: relative;
+      }
+      .plan.primary::before {
+        content: "Önerilen";
+        position: absolute;
+        top: -10px; right: 16px;
+        background: #7eb8f7; color: #0f0f0f;
+        font-size: 0.7rem; font-weight: 700;
+        padding: 0.2rem 0.6rem; border-radius: 10px;
+      }
+      .plan-name { font-size: 1.3rem; font-weight: 700; }
+      .plan-price { margin: 0.6rem 0 1.2rem; }
+      .plan-price .num { font-size: 2.2rem; font-weight: 700; color: #fff; }
+      .plan-price .note { color: #888; font-size: 0.9rem; margin-left: 0.25rem; }
+      .plan-features {
+        list-style: none; padding: 0; margin: 0 0 1.5rem;
+        flex: 1;
+        font-size: 0.88rem;
+      }
+      .plan-features li {
+        display: flex; justify-content: space-between;
+        padding: 0.45rem 0; border-bottom: 1px solid #1f1f1f;
+        color: #ccc;
+      }
+      .plan-features li:last-child { border-bottom: none; }
+      .plan-features .feat { color: #aaa; }
+      .plan-features .val { color: #e0e0e0; font-weight: 500; }
+      .plan-cta {
+        display: block; text-align: center;
+        padding: 0.8rem 1rem;
+        border-radius: 4px;
+        font-size: 0.95rem; font-weight: 600;
+        text-decoration: none;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .plan-cta.primary {
+        background: #7eb8f7; color: #0f0f0f; border: 1px solid #7eb8f7;
+      }
+      .plan-cta.primary:hover { background: #acd4ff; }
+      .plan-cta.ghost {
+        background: transparent; color: #ccc; border: 1px solid #333;
+      }
+      .plan-cta.ghost:hover { background: #1f1f1f; border-color: #555; color: #fff; }
+
+      .faq {
+        margin-top: 3rem;
+        max-width: 720px;
+      }
+      .faq h2 { font-size: 1.2rem; margin-bottom: 1rem; }
+      .faq-item { margin-bottom: 1.2rem; }
+      .faq-q { color: #e0e0e0; font-weight: 600; margin-bottom: 0.3rem; }
+      .faq-a { color: #aaa; font-size: 0.9rem; line-height: 1.55; }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <div class="wrap">
+        <h1>Planlar</h1>
+        <p class="lead">
+          LaTeX Derleyici için plan karşılaştırma. Free planla başla; ihtiyacın
+          büyürse Pro veya Unlimited'a geçebilirsin. Tüm planlarda izole
+          derleme, otomatik kaydetme ve şablonlar dahil.
+        </p>
+
+        <div class="notice">
+          <strong>Bilgilendirme:</strong> Ödeme sistemleri henüz aktif değil
+          (ticari kurulum tamamlandığında açılacak). Şu an plan seçtiğinde
+          ödeme ekranına ulaşabilirsin, ancak işlem yapılamaz.
+        </div>
+
+        <div class="plans">
+          {PLANS.map((p) => (
+            <div class={`plan ${p.primary ? 'primary' : ''}`}>
+              <div class="plan-name">{p.name}</div>
+              <div class="plan-price">
+                <span class="num">{p.price}</span>
+                <span class="note">{p.priceNote}</span>
+              </div>
+              <ul class="plan-features">
+                {p.features.map((f) => (
+                  <li>
+                    <span class="feat">{f[0]}</span>
+                    <span class="val">{f[1]}</span>
+                  </li>
+                ))}
+              </ul>
+              <a class={`plan-cta ${p.primary ? 'primary' : 'ghost'}`} href={p.ctaHref}>{p.cta}</a>
+            </div>
+          ))}
+        </div>
+
+        <div class="faq">
+          <h2>Sık Sorulanlar</h2>
+          <div class="faq-item">
+            <div class="faq-q">Plan ne zaman aktif olacak?</div>
+            <div class="faq-a">
+              Resmi ticari sicil ve ödeme sağlayıcı entegrasyonu (Stripe / iyzico)
+              tamamlandığında. O zamana kadar herkes Free planla kullanmaya devam
+              edebilir; ücretsiz katmanın limitleri çoğu kişisel kullanım için yeterli.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Verilerim nerede saklanıyor?</div>
+            <div class="faq-a">
+              Proje dosyaları Cloudflare R2'de (içerikler) ve D1'de (meta) tutulur.
+              Derleme izole bir KVM VM'de yapılır; kişisel verilerin sunucu üzerinde
+              kalıcı olarak depolanmaz.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">İptal edebilir miyim?</div>
+            <div class="faq-a">
+              Plan aktif olduğunda istediğin zaman iptal edilebilir, kalan dönem
+              sonunda Free'ye düşer ve projeler korunur (max proje boyutu sınırına
+              sığdığı sürece).
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <Footer />
+  </body>
+</html>

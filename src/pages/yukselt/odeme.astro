@@ -1,0 +1,138 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+
+// Bu sayfa şu an MOCK — ödeme sağlayıcı entegrasyonu sonra eklenecek.
+// Form var ama submit disable; sayfa üstünde global banner.
+---
+
+<!doctype html>
+<html lang="tr">
+  <head>
+    <BaseHead
+      title="Ödeme · Yükseltme"
+      description="Plan yükseltme ödeme ekranı (henüz aktif değil)."
+    />
+    <style>
+      .wrap { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem; }
+      h1 { font-size: 1.6rem; margin-bottom: 0.4rem; }
+      .sub { color: #aaa; margin-bottom: 1.5rem; font-size: 0.95rem; }
+
+      .banner {
+        background: #3a1a1a; color: #f0a0a0; border: 1px solid #5a2a2a;
+        padding: 1rem 1.2rem; border-radius: 6px; margin-bottom: 2rem;
+        font-size: 0.92rem; line-height: 1.5;
+      }
+      .banner strong { color: #ff8c8c; }
+
+      .summary {
+        background: #141414; border: 1px solid #2a2a2a;
+        border-radius: 6px; padding: 1rem 1.2rem; margin-bottom: 1.5rem;
+      }
+      .summary-row { display: flex; justify-content: space-between; padding: 0.4rem 0; color: #ccc; }
+      .summary-row.total { border-top: 1px solid #2a2a2a; padding-top: 0.7rem; margin-top: 0.4rem; font-weight: 700; color: #fff; font-size: 1.1rem; }
+
+      form { display: flex; flex-direction: column; gap: 1rem; }
+      label { font-size: 0.85rem; color: #ccc; display: block; margin-bottom: 0.4rem; }
+      input[type=text] {
+        width: 100%;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        color: #e0e0e0;
+        padding: 0.7rem 0.8rem;
+        font-family: inherit;
+        font-size: 0.95rem;
+        border-radius: 4px;
+      }
+      input[type=text]:disabled { opacity: 0.5; }
+      .row { display: flex; gap: 0.8rem; }
+      .row > div { flex: 1; }
+      button[type=submit] {
+        background: #444; color: #888; border: none;
+        padding: 0.85rem 1.5rem; font-size: 0.95rem; font-weight: 600;
+        border-radius: 4px; cursor: not-allowed; align-self: flex-start;
+      }
+      .back { color: #7eb8f7; text-decoration: none; font-size: 0.9rem; }
+      .back:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <div class="wrap">
+        <p><a class="back" href="/yukselt">&larr; Planlara dön</a></p>
+        <h1>Ödeme</h1>
+        <p class="sub" id="sub">Plan seçimini onayla ve ödemeyi tamamla.</p>
+
+        <div class="banner">
+          <strong>Ödeme sistemleri henüz aktif değil.</strong><br />
+          Bu ekran şu an <em>önizleme</em>. Ticari sicil ve ödeme sağlayıcı
+          entegrasyonu (Stripe / iyzico) tamamlandığında gerçek işlem yapılabilecek.
+          Şimdilik Free planla devam edebilirsin.
+        </div>
+
+        <div class="summary">
+          <div class="summary-row">
+            <span>Plan</span>
+            <span id="sum-plan">—</span>
+          </div>
+          <div class="summary-row">
+            <span>Faturalama</span>
+            <span id="sum-period">Aylık</span>
+          </div>
+          <div class="summary-row total">
+            <span>Toplam</span>
+            <span id="sum-total">—</span>
+          </div>
+        </div>
+
+        <form id="pay-form" novalidate>
+          <div>
+            <label for="name">Kart sahibi</label>
+            <input id="name" type="text" placeholder="Ad Soyad" disabled />
+          </div>
+          <div>
+            <label for="card">Kart numarası</label>
+            <input id="card" type="text" placeholder="0000 0000 0000 0000" inputmode="numeric" disabled />
+          </div>
+          <div class="row">
+            <div>
+              <label for="exp">Son kullanma</label>
+              <input id="exp" type="text" placeholder="AA / YY" inputmode="numeric" disabled />
+            </div>
+            <div>
+              <label for="cvv">CVV</label>
+              <input id="cvv" type="text" placeholder="123" inputmode="numeric" disabled />
+            </div>
+          </div>
+          <button type="submit" disabled>Ödemeyi Tamamla (devre dışı)</button>
+        </form>
+      </div>
+    </main>
+    <Footer />
+
+    <script>
+      const PLAN_META = {
+        pro: { name: 'Pro', price: '₺99 / ay' },
+        unlimited: { name: 'Unlimited', price: '₺249 / ay' },
+      };
+      const params = new URLSearchParams(window.location.search);
+      const planKey = (params.get('plan') || '').toLowerCase();
+      const meta = PLAN_META[planKey];
+      const sumPlan = document.getElementById('sum-plan');
+      const sumTotal = document.getElementById('sum-total');
+      const sub = document.getElementById('sub');
+      if (meta) {
+        if (sumPlan) sumPlan.textContent = meta.name;
+        if (sumTotal) sumTotal.textContent = meta.price;
+        if (sub) sub.textContent = `${meta.name} planına geçmek üzeresin.`;
+      } else {
+        if (sub) sub.textContent = 'Geçersiz plan. Lütfen plan listesine dön.';
+      }
+      // Form submit hiçbir şey yapmaz; ekstra güvenlik:
+      const form = document.getElementById('pay-form');
+      if (form) form.addEventListener('submit', (e) => e.preventDefault());
+    </script>
+  </body>
+</html>

@@ -60,7 +60,7 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 - ✅ PDF indirme.
 - ✅ Yakınlaştır/uzaklaştır + genişliğe sığdır + sayfaya sığdır.
 - ✅ Sayfa gezinme (önceki / sonraki / N/Toplam, sayı kutusu Enter ile git).
-- ✅ PDF içinde metin arama (sayfa düzeyi — eşleşmeli sayfaya atla; in-page vurgu yok).
+- ✅ PDF içinde metin arama (TextLayer overlay + sarı highlight; aktif eşleşme turuncu, prev/next, scroll).
 
 ### 1.7 İşbirliği & paylaşım (ileri faz)
 - ⬜ Salt-okunur paylaşım linki.
@@ -71,6 +71,19 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 ### 1.8 Versiyon & geçmiş (ileri faz)
 - ⬜ Derleme / kayıt geçmişi.
 - ⬜ Sürüm karşılaştırma, geri alma.
+
+### 1.9 Hesap & Plan / Ödeme
+- ✅ Plan karşılaştırma sayfası (`/yukselt`): Free / Pro / Unlimited kartları,
+  özellikler ve fiyatlar (₺99/ay Pro, ₺249/ay Unlimited). Global "ödeme aktif değil" bilgi.
+- ✅ Ödeme önizleme sayfası (`/yukselt/odeme?plan=...`): mock form, submit disabled,
+  üstte global uyarı banner'ı.
+- ✅ Topbar'da "Yükselt" butonu (giriş yapmış kullanıcı, /latex iframe'inden parent'a yönlendirir).
+- ✅ Kamu Header'da "Yükselt" linki.
+- ⬜ Resmi ticari sicil + ödeme sağlayıcı entegrasyonu (Stripe / iyzico).
+- ⬜ Plan değişiminin D1 `users.tier`'a yazılması (webhook).
+- ⬜ Otomatik faturalama, fatura/dekont gönderimi.
+- ⬜ İptal akışı (kalan dönem sonunda Free'ye düşür).
+- ⬜ KVKK / GDPR uyumlu kullanım şartları + gizlilik politikası.
 
 ---
 
