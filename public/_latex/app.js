@@ -996,25 +996,14 @@ function updatePageBadge() {
   if (els.pdfPageTotal) els.pdfPageTotal.textContent = `/ ${pdfState.pages.length}`;
 }
 
-async function renderTextLayerForPage(pdfjs, page, viewport, container) {
-  try {
-    const textContent = await page.getTextContent();
-    // PDF.js v4+ TextLayer sınıfı varsa onu kullan, yoksa eski renderTextLayer
-    if (typeof pdfjs.TextLayer === 'function') {
-      const tl = new pdfjs.TextLayer({ textContentSource: textContent, container, viewport });
-      await tl.render();
-    } else if (typeof pdfjs.renderTextLayer === 'function') {
-      const r = pdfjs.renderTextLayer({ textContent, container, viewport, textDivs: [] });
-      if (r && r.promise) await r.promise;
-    }
-  } catch { /* text layer kritik değil, görmezden gel */ }
-}
-
+// Her sayfa için textContent cache'lenir (zoom değişince yeniden parse etmeye gerek yok)
 async function renderAllPages() {
   if (!pdfState) return;
   els.pdfViewer.innerHTML = '';
   pdfState.canvases = [];
-  pdfState.textLayers = [];
+  pdfState.overlays = [];
+  if (!pdfState.textContents) pdfState.textContents = new Array(pdfState.pages.length).fill(null);
+
   for (let i = 0; i < pdfState.pages.length; i++) {
     const page = pdfState.pages[i];
     const viewport = page.getViewport({ scale: pdfState.scale });
@@ -1031,19 +1020,23 @@ async function renderAllPages() {
     canvas.height = viewport.height;
     wrapper.appendChild(canvas);
 
-    const textLayerDiv = document.createElement('div');
-    textLayerDiv.className = 'pdf-text-layer';
-    textLayerDiv.style.width = viewport.width + 'px';
-    textLayerDiv.style.height = viewport.height + 'px';
-    wrapper.appendChild(textLayerDiv);
+    const overlay = document.createElement('div');
+    overlay.className = 'pdf-hit-overlay';
+    overlay.style.width = viewport.width + 'px';
+    overlay.style.height = viewport.height + 'px';
+    wrapper.appendChild(overlay);
 
     els.pdfViewer.appendChild(wrapper);
     pdfState.canvases.push(canvas);
-    pdfState.textLayers.push(textLayerDiv);
+    pdfState.overlays.push(overlay);
 
     const ctx = canvas.getContext('2d');
     await page.render({ canvasContext: ctx, viewport }).promise;
-    await renderTextLayerForPage(pdfjsModule, page, viewport, textLayerDiv);
+
+    // textContent'i bir kere çek, sonra cache'le (zoom'da geçerli, geometri ayrı)
+    if (!pdfState.textContents[i]) {
+      try { pdfState.textContents[i] = await page.getTextContent(); } catch { /* sessiz */ }
+    }
   }
 }
 
@@ -1110,25 +1103,19 @@ function fitPage() {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// PDF metin arama (in-page vurgu)
+// PDF metin arama (overlay rectangle yaklaşımı)
 //
-// TextLayer DOM'unda match içeren span'ları .pdf-hit ile sarar; aktif eşleşmeye
-// .pdf-hit-active. Aktife scrollIntoView. Zoom değişip TextLayer yeniden
-// kurulduğunda highlight'ları geri kurar.
+// PDF.js'ten alınan textContent.items üzerinden arama yapılır; her eşleşme için
+// viewport.transform * item.transform ile dikdörtgen hesaplanır ve sayfanın
+// kendi .pdf-hit-overlay div'ine absolute pozisyonlu <div> olarak yerleştirilir.
+// Zoom değişince renderAllPages → buildPdfSearch yeniden çağrılır (textContent
+// cache'lendiği için sadece geometri yeniden hesaplanır).
 // ──────────────────────────────────────────────────────────────────
-let pdfSearchState = null; // { query, matches: [{ pageIdx, hitEl }], current }
+let pdfSearchState = null; // { query, matches: [{ pageIdx, el }], current }
 
 function clearHighlights() {
-  if (!pdfState || !pdfState.textLayers) return;
-  for (const tl of pdfState.textLayers) {
-    if (!tl) continue;
-    const hits = tl.querySelectorAll('.pdf-hit');
-    for (const hit of hits) {
-      const text = document.createTextNode(hit.textContent || '');
-      hit.parentNode && hit.parentNode.replaceChild(text, hit);
-    }
-    tl.normalize();
-  }
+  if (!pdfState || !pdfState.overlays) return;
+  for (const o of pdfState.overlays) if (o) o.innerHTML = '';
 }
 
 function clearPdfSearch() {
@@ -1137,42 +1124,64 @@ function clearPdfSearch() {
   if (els.pdfSearchCount) els.pdfSearchCount.textContent = '—';
 }
 
+// 2x3 affine matrix çarpımı (PDF.js Util.transform ile aynı sonuç)
+function mulMat(m1, m2) {
+  return [
+    m1[0] * m2[0] + m1[2] * m2[1],
+    m1[1] * m2[0] + m1[3] * m2[1],
+    m1[0] * m2[2] + m1[2] * m2[3],
+    m1[1] * m2[2] + m1[3] * m2[3],
+    m1[0] * m2[4] + m1[2] * m2[5] + m1[4],
+    m1[1] * m2[4] + m1[3] * m2[5] + m1[5],
+  ];
+}
+
+function rectFromTextItem(item, charStart, charLen, viewport) {
+  const tx = mulMat(viewport.transform, item.transform);
+  const fontHeight = Math.hypot(tx[2], tx[3]) || 12;
+  const left = tx[4];
+  const top = tx[5] - fontHeight;
+  const totalW = (item.width || 0) * viewport.scale;
+  const cnt = item.str ? item.str.length : 0;
+  const charW = cnt > 0 ? totalW / cnt : 0;
+  return {
+    left: left + charStart * charW,
+    top,
+    width: Math.max(1, charLen * charW),
+    height: fontHeight,
+  };
+}
+
 function buildPdfSearch(query) {
   if (!pdfState || !query) { clearPdfSearch(); return; }
   clearHighlights();
   const q = query.toLowerCase();
   const matches = [];
-  for (let i = 0; i < (pdfState.textLayers || []).length; i++) {
-    const tl = pdfState.textLayers[i];
-    if (!tl) continue;
-    const spans = tl.querySelectorAll('span');
-    for (const span of spans) {
-      // Yalnız text node taşıyan span'lar (zaten parse edilmiş .pdf-hit yok burada)
-      const txt = span.textContent || '';
-      if (!txt) continue;
-      const lower = txt.toLowerCase();
-      const segs = [];
+  for (let i = 0; i < (pdfState.textContents || []).length; i++) {
+    const tc = pdfState.textContents[i];
+    const overlay = pdfState.overlays[i];
+    if (!tc || !overlay) continue;
+    const viewport = pdfState.pages[i].getViewport({ scale: pdfState.scale });
+
+    for (const item of tc.items) {
+      const str = item.str || '';
+      if (!str) continue;
+      const lower = str.toLowerCase();
       let from = 0;
       while (true) {
         const idx = lower.indexOf(q, from);
         if (idx === -1) break;
-        segs.push([idx, idx + q.length]);
+        const rect = rectFromTextItem(item, idx, q.length, viewport);
+        const box = document.createElement('div');
+        box.className = 'pdf-hit';
+        box.style.left = rect.left + 'px';
+        box.style.top = rect.top + 'px';
+        box.style.width = rect.width + 'px';
+        box.style.height = rect.height + 'px';
+        overlay.appendChild(box);
+        matches.push({ pageIdx: i, el: box });
         from = idx + q.length;
       }
-      if (!segs.length) continue;
-      // span içeriğini yeniden kur: düz metin parçaları + .pdf-hit wrapları
-      span.textContent = '';
-      let last = 0;
-      for (const [a, b] of segs) {
-        if (a > last) span.appendChild(document.createTextNode(txt.substring(last, a)));
-        const hit = document.createElement('span');
-        hit.className = 'pdf-hit';
-        hit.textContent = txt.substring(a, b);
-        span.appendChild(hit);
-        matches.push({ pageIdx: i, hitEl: hit });
-        last = b;
-      }
-      if (last < txt.length) span.appendChild(document.createTextNode(txt.substring(last)));
     }
   }
   pdfSearchState = { query: q, matches, current: matches.length ? 0 : -1 };
@@ -1190,15 +1199,15 @@ function updateSearchCount() {
 function goToCurrentMatch() {
   if (!pdfSearchState || !pdfSearchState.matches.length) return;
   // önceki aktifi temizle
-  if (pdfState && pdfState.textLayers) {
-    for (const tl of pdfState.textLayers) {
-      if (!tl) continue;
-      tl.querySelectorAll('.pdf-hit-active').forEach((el) => el.classList.remove('pdf-hit-active'));
+  if (pdfState && pdfState.overlays) {
+    for (const o of pdfState.overlays) {
+      if (!o) continue;
+      o.querySelectorAll('.pdf-hit-active').forEach((el) => el.classList.remove('pdf-hit-active'));
     }
   }
   const m = pdfSearchState.matches[pdfSearchState.current];
-  m.hitEl.classList.add('pdf-hit-active');
-  m.hitEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+  m.el.classList.add('pdf-hit-active');
+  m.el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
   if (pdfState) {
     pdfState.currentPage = m.pageIdx + 1;
     updatePageBadge();
