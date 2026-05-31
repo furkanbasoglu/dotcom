@@ -2,25 +2,18 @@
  * POST /api/compile
  *
  * LaTeX derleme isteklerini kabul eder. Sıralama:
- *   1) Clerk JWT doğrula (Authorization: Bearer <token>)
- *   2) Tier'ı D1 users.tier'dan oku (yoksa free fallback)
+ *   1) JWT doğrula (Authorization: Bearer <token>)
+ *   2) Tier'ı D1'den oku (yoksa free fallback)
  *   3) Rate limit (KV, kullanıcı + tier bazlı)
  *   4) Body validation (entry, files, engine, size limits — binary dosyalar da sayılır)
- *   5) Compile servisine forward (Cloudflare Tunnel → Pi VM)
+ *   5) Compile servisine outbound forward (edge-only tünel arkasında)
  *
- * Tunnel + VM API henüz hazır değilken bu endpoint **503 Service Unavailable**
- * döner ve frontend kullanıcıya "servis hazırlanıyor" mesajı gösterir.
+ * Tünel hedefi konfigüre edilmemişse endpoint **503 Service Unavailable** döner
+ * ve frontend kullanıcıya "servis hazırlanıyor" mesajı gösterir.
  *
- * Cloudflare Pages env (Settings → Environment Variables):
- *   - CLERK_SECRET_KEY              Clerk backend secret
- *   - CLERK_PUBLISHABLE_KEY         Clerk publishable key (also accepted: PUBLIC_CLERK_PUBLISHABLE_KEY)
- *   - COMPILE_TUNNEL_URL            Tunnel endpoint for the compile backend
- *   - COMPILE_SERVICE_TOKEN_ID      Access service token client id
- *   - COMPILE_SERVICE_TOKEN_SECRET  Access service token secret
- *
- * Cloudflare Pages bindings:
- *   - RATE_LIMIT (KV)               counters for per-user rate limiting
- *   - DB (D1 → latex-db)            users.tier lookup (optional; eksikse free fallback)
+ * Edge binding'leri ve env değişkenleri dashboard üzerinden tanımlanır; aşağıdaki
+ * `Env` interface'i runtime'da hangi adların gerektiğini ifade eder. Operasyonel
+ * detaylar (kaynak adları, hedef URL'ler) bu dosyada yer almaz.
  *
  * Tier limits:
  *   - Free:      single project, 10 MB, 30s timeout, low priority

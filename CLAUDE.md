@@ -27,19 +27,21 @@ açabilir. Tier sistemi: Free / Pro / Unlimited.
 
 ### 2.1 Derleme zinciri
 tarayıcı (Monaco editör + dosya ağacı)
-→ Pages Function `functions/api/compile.ts` (Clerk JWT doğrula + tier + rate limit)
-→ Cloudflare Tunnel + Access (service-token ile korumalı)
-→ Raspberry Pi üzerindeki **izole KVM VM**'de `latex-api` (kuyruk + güvenli Docker/TeXLive)
+→ edge Pages Function `functions/api/compile.ts` (kimlik + tier + rate limit + boyut)
+→ outbound tünel (yalnız edge'den erişilebilen, service-token ile korumalı)
+→ izole derleme ortamı (sandbox container'da güvenli LaTeX engine)
 → PDF → tarayıcıda PDF.js ile render.
+
+Mimari ilkeleri ve sertleştirme katmanları için `SECURITY.md`.
 
 ### 2.2 Kalıcılık zinciri
 tarayıcı
 → `functions/api/projects.ts` (GET listele / POST oluştur)
 → `functions/api/projects/[id].ts` (GET aç / PUT kaydet / DELETE sil)
-→ ortak `functions/api/_auth.ts` (Clerk JWT + lazy D1 upsert + tier)
-→ **D1** `latex-db` (metadata: users/projects/files) + **R2** `latex-projects` (dosya içerikleri).
+→ ortak `functions/api/_auth.ts` (JWT doğrula + lazy D1 upsert + tier)
+→ edge KV/D1/R2 binding'leri (rate limit sayaçları + metadata + dosya içerikleri).
 
-Tüm kullanıcı verisi Cloudflare edge'de yaşar; **Raspberry Pi'da sıfır yer kaplar**.
+Tüm kullanıcı verisi edge'de yaşar; derleme ortamında sıfır kalıcı depolama.
 
 ---
 
@@ -65,23 +67,19 @@ Tüm kullanıcı verisi Cloudflare edge'de yaşar; **Raspberry Pi'da sıfır yer
 
 ---
 
-## 4. Cloudflare kaynakları ve binding'ler
+## 4. Edge binding'leri ve env
 
-Pages projesi adı: **dotcom** (panelden yönetiliyor; repoda `wrangler.toml` YOK).
-Bindings/env panelden tanımlı (Settings → Bindings / Variables):
+Edge platformu Pages projesinde tanımlı binding'ler (KV / D1 / R2) ve env değişkenleri
+**dashboard üzerinden yönetilir**; repoda `wrangler.toml` ya da yapılandırma listesi yok.
+Kod tarafında binding ve env ada erişim kod içindeki interface'lerden görünür; isimler
+ve değerler bu dosyada tekrarlanmaz.
 
-- KV  `RATE_LIMIT`        — rate limit sayaçları
-- D1  `DB` → `latex-db`   — metadata
-- R2  `PROJECTS_BUCKET` → `latex-projects` — dosya içerikleri
-- env: `CLERK_SECRET_KEY`, `PUBLIC_CLERK_PUBLISHABLE_KEY` (pk_live...), `COMPILE_TUNNEL_URL`,
-  `COMPILE_SERVICE_TOKEN_ID`, `COMPILE_SERVICE_TOKEN_SECRET`, `MAIL_FROM`, `MAIL_TO`,
-  `RESEND_API_KEY`, `PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`
+Yönetim:
+- D1 sorgu/şema değişikliği: lokal `wrangler` ile, **`--remote`** zorunlu.
+- R2 obje işlemleri: aynı şekilde `wrangler`.
+- Hangi proje/db/bucket adının kullanıldığı dashboard ve özel notlardadır.
 
-Resource ID'leri (D1 id, account id vb.) gerektiğinde `wrangler` ile alınır; bu dosyaya
-yazılmaz. **wrangler komutları repo kökünde, `npx wrangler ...` ile** çalışır (giriş yapılmış).
-
-R2 anahtar düzeni: `<owner_id>/<project_id>/<dosya_adı>`.
-D1 dosya gösterimi ↔ API sözleşmesi: metin → JSON string; binary → `{ encoding:'base64', data }`.
+API sözleşmesi (dosya gösterimi): metin → JSON string; binary → `{ encoding:'base64', data }`.
 
 ---
 
@@ -108,15 +106,19 @@ D1 dosya gösterimi ↔ API sözleşmesi: metin → JSON string; binary → `{ e
 
 ## 6. Güvenlik kuralları (KRİTİK)
 
-- **Host ve VM'e DOKUNMA.** Raspberry Pi host'unda kişisel veri var (e-posta hesapları vb.).
-  Bu repo yalnızca *website*'tir. Derleme izole KVM VM'de döner; kullanıcı verisi Pi'a hiç değmez.
-- **Secret'ları repoya KOYMA.** Clerk/Resend/Cloudflare token'ları, cloudflared `*.json` /
-  `cert.pem`, Access service-token secret'ı → hepsi Cloudflare panelinde / VM'de; repoda asla.
-  `.gitignore` bunları dışlamalı. CLAUDE.md dahil hiçbir commit'lenen dosyaya secret yazma.
-- **Açık iş**: Access service-token secret'ı bir ara transcript'te açığa çıktı; **rotate
-  edilmeli** (Zero Trust'ta sil → yeniden oluştur → iki Pages secret'ını güncelle → redeploy).
+- **Bu repo yalnızca website + edge function'lardır.** Derleme ve depolama altyapısının
+  operasyonel ayrıntıları (host, ağ topolojisi, hostname, IP, port, yol, dosya isimleri,
+  sürüm bilgileri) bu repoda **bilerek yoktur**. Mimari ilke düzeyinde `SECURITY.md`.
+- **Hiçbir secret veya kimlik bilgisi commit'lenmez.** Token, anahtar, sertifika, hesap
+  e-postası, kullanıcı kimliği, kaynak adı, fiyatlandırma içeren özel notlar — hepsi
+  repo dışında. `.gitignore` `.env*`, `*.key`, `*.pem`, `secrets/`, kişisel `NOTES`,
+  `SETUP`, `STATE`, `TODO`, `.private.md` dosyalarını dışarıda tutar.
+- Hangi env değişkenlerinin tanımlı olması gerektiği kod içinde TypeScript interface
+  olarak ifade edilir (runtime erişim için zorunlu); **bu dosyada inventory tekrarı YOK**.
 - Sahiplik kontrolü: proje API'lerinde her işlemde `owner_id == userId` doğrulanır (404 aksi halde).
 - Dosya adlarında path-traversal koruması (`..`, baştaki `/`, `\` yasak).
+- Hassas bilgi sızıntısı şüphesinde: ilgili commit'ler revert edilmez (zaten git geçmişinde),
+  bunun yerine **sızan kimlikler rotate** edilir + bundan sonraki commit'lerde tekrarlanmaz.
 
 ---
 
@@ -126,11 +128,10 @@ D1 dosya gösterimi ↔ API sözleşmesi: metin → JSON string; binary → `{ e
   Üretim build'i: `npm run build` (çıktı `dist/`). Önizleme: `npm run preview`.
   Node ≥ 22.12 gerekli (package.json `engines`).
 - **Test paketi YOK**: bu repoda otomatik test yok; doğrulama tarayıcıda yapılır.
-- **Deploy**: `git push` → Cloudflare Pages otomatik build/deploy (proje "dotcom").
-  Ayrı build komutu gerekmez.
-- **D1 sorgu/şema**: `npx wrangler d1 execute latex-db --remote --command "..."`
-  veya `--file db/schema.sql`. `--remote` ŞART (yoksa yerel test db'ye gider).
-- **R2**: `npx wrangler r2 object get|put|delete latex-projects/<key>`.
+- **Deploy**: `git push` → edge platformu otomatik build/deploy.
+- **D1 sorgu/şema**: lokal `wrangler d1 execute ... --remote ...` (proje adı/db adı
+  özel notlarda; bu dosyaya yazılmaz). `--remote` ŞART.
+- **R2**: aynı şekilde `wrangler r2 object` komutları, bucket adı özel notlarda.
 - **Test yöntemi**: deploy sonrası `/latex`'te, DevTools console'da `_latex/` iframe context'i
   seçip `await window.Clerk.session.getToken()` ile token alıp `fetch('/api/...')` çağrısı.
   Frontend testleri için hard refresh (Ctrl+Shift+R).

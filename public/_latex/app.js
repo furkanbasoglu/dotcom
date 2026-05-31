@@ -569,14 +569,14 @@ async function initEditor() {
       editor = monaco.editor.create(els.editorHost, {
         language: 'latex',
         theme: 'vs-dark',
-        fontSize: 13,
+        fontSize: 16,
         fontFamily: '"JetBrains Mono", "Courier New", monospace',
         minimap: { enabled: false },
         scrollBeyondLastLine: false,
         wordWrap: 'on',
         automaticLayout: true,
         renderLineHighlight: 'gutter',
-        padding: { top: 8 },
+        padding: { top: 10 },
       });
       editor.onDidChangeModelContent(updateEditorMeta);
       initProject();

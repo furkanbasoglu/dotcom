@@ -5,15 +5,9 @@
  * applies CAPTCHA verification and rate limiting, then forwards the
  * message to the operator via a transactional email provider.
  *
- * Required Pages environment bindings:
- *   - RESEND_API_KEY        — transactional email provider API key (encrypted)
- *   - TURNSTILE_SECRET_KEY  — CAPTCHA verification secret (encrypted)
- *   - MAIL_FROM             — verified sender address
- *   - MAIL_TO               — operator's destination address
- *   - RATE_LIMIT (KV)       — namespace for rate limit counters
- *
- * The frontend additionally reads PUBLIC_TURNSTILE_SITE_KEY at build time
- * to render the CAPTCHA widget.
+ * Edge env bindings are configured via the platform dashboard. The required
+ * names are expressed by the `Env` interface below; their values and the
+ * specific providers involved are not documented in this file.
  */
 
 interface Env {
