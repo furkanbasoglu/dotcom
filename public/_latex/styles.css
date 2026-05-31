@@ -1,3 +1,9 @@
+/* === Design system === */
+:root {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Consolas, "Liberation Mono", monospace;
+}
+
 /* === Reset & base === */
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -7,9 +13,9 @@ html, body {
   height: 100%;
   background: #0f0f0f;
   color: #e0e0e0;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 14px;
-  line-height: 1.45;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
   overflow: hidden;
 }
 
@@ -42,7 +48,7 @@ button {
 }
 
 .logo {
-  font-family: "JetBrains Mono", "Courier New", monospace;
+  font-family: var(--font-mono);
   font-size: 1.4rem;
   font-weight: 600;
   color: #7eb8f7;
@@ -50,25 +56,27 @@ button {
 }
 
 .title {
-  font-weight: 700;
+  font-weight: 600;
   color: #fff;
-  font-size: 1.25rem;
-  letter-spacing: -0.01em;
+  font-size: 1.05rem;
+  letter-spacing: -0.005em;
 }
 
 .user-email {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: #aaa;
+  font-family: var(--font-sans);
 }
 .tier-badge {
   background: #2a2a2a;
   color: #aaa;
-  padding: 0.22rem 0.6rem;
+  padding: 0.18rem 0.55rem;
   border-radius: 3px;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  font-family: var(--font-sans);
 }
 
 .tier-badge[data-tier="pro"]   { background: #2a3a4a; color: #a0c0e0; }
@@ -106,9 +114,10 @@ button {
   background: #1f1f1f;
   border: 1px solid #333;
   color: #e0e0e0;
-  padding: 0.55rem 1.05rem;
+  padding: 0.5rem 1rem;
   border-radius: 4px;
-  font-size: 0.95rem;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
   font-weight: 500;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
   text-decoration: none;
@@ -153,10 +162,10 @@ button {
   background: #1f1f1f;
   border: 1px solid #333;
   color: #ccc;
-  padding: 0.5rem 0.85rem;
+  padding: 0.45rem 0.8rem;
   border-radius: 4px;
-  font-size: 0.92rem;
-  font-family: "JetBrains Mono", monospace;
+  font-size: 0.88rem;
+  font-family: var(--font-sans);
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -173,18 +182,21 @@ button {
 }
 
 .btn-small {
-  padding: 0.3rem 0.6rem;
-  font-size: 0.75rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.88rem;
 }
 
 .btn-link {
   background: transparent;
   border: none;
   color: #7eb8f7;
-  font-size: 0.8rem;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
   padding: 0;
+  cursor: pointer;
 }
 .btn-link:hover { color: #acd4ff; }
+.logs-actions { display: flex; align-items: center; gap: 1rem; }
 
 /* === Workspace (editor + pdf) === */
 .workspace {
@@ -215,16 +227,17 @@ button {
 }
 
 .panel-title {
-  font-size: 0.98rem;
+  font-size: 0.92rem;
   color: #ccc;
   font-weight: 600;
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-sans);
+  letter-spacing: 0.01em;
 }
 
 .panel-meta {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   color: #777;
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-sans);
 }
 
 /* === Editor === */
@@ -297,8 +310,8 @@ button {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
   margin-left: auto;
   margin-right: 0.6rem;
 }
@@ -389,8 +402,8 @@ button {
 .logs-body {
   margin: 0;
   padding: 0.85rem 1.15rem;
-  font-family: "JetBrains Mono", "Courier New", monospace;
-  font-size: 0.92rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
   color: #aaa;
   white-space: pre-wrap;
   overflow: auto;
@@ -441,7 +454,7 @@ button {
 }
 .icon-btn:hover { background: #1f1f1f; color: #fff; border-color: #444; }
 
-.file-tree { list-style: none; margin: 0; padding: 0.4rem; overflow: auto; flex: 1.6 1 0; min-height: 80px; font-size: 0.95rem; }
+.file-tree { list-style: none; margin: 0; padding: 0.4rem; overflow: auto; flex: 1.6 1 0; min-height: 80px; font-size: 0.92rem; }
 
 .outline-section {
   display: flex;
@@ -451,12 +464,12 @@ button {
   border-top: 1px solid #1c1c1c;
 }
 .panel-subheader {
-  padding: 0.55rem 1rem;
-  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
   color: #888;
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-sans);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   background: #111;
   flex-shrink: 0;
   font-weight: 600;
@@ -467,10 +480,11 @@ button {
   padding: 0.3rem 0;
   overflow: auto;
   flex: 1;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
+  font-family: var(--font-sans);
 }
 .outline-list li {
-  padding: 0.35rem 0.9rem;
+  padding: 0.32rem 0.9rem;
   cursor: pointer;
   color: #bbb;
   white-space: nowrap;
@@ -480,8 +494,8 @@ button {
 .outline-list li:hover { background: #1c1c1c; color: #fff; }
 .outline-list li.outline-empty { color: #555; cursor: default; }
 .outline-list li.outline-empty:hover { background: transparent; color: #555; }
-.outline-list li.outline-l1 { padding-left: 1.8rem; color: #aaa; }
-.outline-list li.outline-l2 { padding-left: 2.6rem; color: #999; font-size: 0.88rem; }
+.outline-list li.outline-l1 { padding-left: 1.6rem; color: #aaa; }
+.outline-list li.outline-l2 { padding-left: 2.3rem; color: #999; font-size: 0.82rem; }
 
 .modal-select-label {
   display: block;
@@ -508,14 +522,15 @@ button {
 .file-item:hover { background: #161616; }
 .file-item.active { background: #1d2733; }
 .file-name {
-  display: flex; align-items: center; gap: 0.4rem; min-width: 0; flex: 1;
-  font-size: 0.82rem; color: #ddd; font-family: "JetBrains Mono", monospace;
+  display: flex; align-items: center; gap: 0.5rem; min-width: 0; flex: 1;
+  font-size: 0.92rem; color: #ddd; font-family: var(--font-mono);
 }
-.file-icon { font-size: 0.85rem; flex-shrink: 0; }
+.file-icon { font-size: 0.95rem; flex-shrink: 0; }
 .file-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .main-badge {
-  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em;
-  background: #4a3a2a; color: #e0c0a0; padding: 0.05rem 0.3rem; border-radius: 3px; flex-shrink: 0;
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em;
+  background: #4a3a2a; color: #e0c0a0; padding: 0.1rem 0.35rem; border-radius: 3px; flex-shrink: 0;
+  font-weight: 600;
 }
 .file-row-actions { display: none; gap: 0.1rem; flex-shrink: 0; }
 .file-item:hover .file-row-actions { display: flex; }
@@ -569,40 +584,44 @@ body.resizing .editor-host, body.resizing .pdf-host { pointer-events: none; }
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  max-width: 1400px;
+  max-width: 1600px;
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
+  font-family: var(--font-sans);
 }
 .dash-head {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.6rem;
   border-bottom: 1px solid #1f1f1f;
 }
-.dash-title { font-size: 2.2rem; margin: 0; font-weight: 700; letter-spacing: -0.02em; color: #fff; }
-.dash-status { color: #888; font-size: 0.95rem; margin: 0; min-height: 1em; }
-.dash-signed-out { color: #aaa; padding: 1.2rem; border: 1px dashed #333; border-radius: 8px; font-size: 0.95rem; }
+.dash-title {
+  font-size: 1.85rem; margin: 0; font-weight: 700;
+  letter-spacing: -0.02em; color: #fff;
+}
+.dash-status { color: #888; font-size: 0.88rem; margin: 0; min-height: 1em; }
+.dash-signed-out { color: #aaa; padding: 1.1rem; border: 1px dashed #333; border-radius: 8px; font-size: 0.9rem; }
 .dash-list {
   list-style: none; padding: 0; margin: 0;
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.2rem;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.1rem;
 }
 .dash-card {
   display: flex; align-items: stretch;
-  border: 1px solid #2a2a2a; border-radius: 10px; background: #161616;
+  border: 1px solid #2a2a2a; border-radius: 8px; background: #161616;
   overflow: hidden; transition: border-color 0.12s, background 0.12s, transform 0.12s;
 }
 .dash-card:hover { border-color: #3a5570; background: #1a1f25; transform: translateY(-1px); }
-.dash-card-main { flex: 1 1 auto; padding: 1.1rem 1.2rem; cursor: pointer; min-width: 0; }
+.dash-card-main { flex: 1 1 auto; padding: 1rem 1.15rem; cursor: pointer; min-width: 0; }
 .dash-card-name {
-  font-weight: 600; font-size: 1.1rem;
-  margin-bottom: 0.4rem;
+  font-weight: 600; font-size: 0.98rem;
+  margin-bottom: 0.3rem;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   color: #fff;
 }
-.dash-card-meta { font-size: 0.85rem; color: #888; }
+.dash-card-meta { font-size: 0.8rem; color: #888; }
 .dash-card-del {
   background: transparent; border: none; color: #777; cursor: pointer;
-  padding: 0 1rem; font-size: 1.15rem;
+  padding: 0 1rem; font-size: 1.05rem;
 }
 .dash-card-del:hover { color: #e06666; background: #2a1a1a; }
 /* ===== Ozel modal (prompt/confirm yerine)  (styles.css'in SONUNA EKLE) ===== */

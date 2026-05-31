@@ -15,7 +15,11 @@ import Footer from '../../components/Footer.astro';
       description="Plan yükseltme ödeme ekranı (henüz aktif değil)."
     />
     <style>
-      .wrap { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem; }
+      :root { --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      .wrap {
+        max-width: 640px; margin: 0 auto;
+        padding: 2rem 1.5rem; font-family: var(--font-sans);
+      }
       h1 { font-size: 1.6rem; margin-bottom: 0.4rem; }
       .sub { color: #aaa; margin-bottom: 1.5rem; font-size: 0.95rem; }
 

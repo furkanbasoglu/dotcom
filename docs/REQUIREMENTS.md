@@ -49,6 +49,7 @@ Durum etiketleri: ✅ yapıldı · 🟡 kısmen · ⬜ planlı
 - ✅ Eşzamanlılık kuyruğu + tier önceliği + per-user limit.
 - ✅ Bibliyografya (latexmk biber/bibtex'i otomatik çağırır).
 - ✅ Hata/log gösterimi (ham log + tıklanabilir tanılar — error ve LaTeX Warning).
+- ✅ Log konsolunu `.txt` olarak indirme (zaman damgalı dosya adı).
 - 🟡 UI'dan engine seçimi (topbar dropdown, per-project D1'de kalıcı) — derleme ayarları paneli henüz yok.
 - ✅ Log parse → tıklanınca editörde ilgili satıra gitme.
 - ⬜ Derlemeyi iptal etme (cancel).

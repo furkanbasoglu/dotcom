@@ -43,7 +43,7 @@
       </div>
       <div id="auth-signed-in" class="auth-section" style="display:none">
         <span class="user-email" id="user-email"></span>
-        <button id="btn-sign-out" class="btn btn-ghost btn-small">&#199;&#305;k&#305;&#351;</button>
+        <button id="btn-sign-out" class="btn btn-ghost">&#199;&#305;k&#305;&#351;</button>
       </div>
     </div>
   </header>
@@ -134,7 +134,10 @@
   <section class="logs" id="logs-panel">
     <div class="logs-header">
       <span class="panel-title">Log Konsolu</span>
-      <button id="btn-clear-logs" class="btn-link">Temizle</button>
+      <div class="logs-actions">
+        <button id="btn-download-logs" class="btn-link" title="Loglar&#305; .txt olarak indir">&#8595; .txt</button>
+        <button id="btn-clear-logs" class="btn-link">Temizle</button>
+      </div>
     </div>
     <pre id="logs-body" class="logs-body">Ho&#351; geldin. Bir proje a&#231; ya da olu&#351;tur.
 </pre>

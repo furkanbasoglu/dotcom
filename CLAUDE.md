@@ -151,7 +151,8 @@ vurgu (TextLayer overlay, sarı/turuncu highlight, prev/next);
 engine seçimi UI (topbar dropdown, per-project D1'de kalıcı);
 otomatik kaydetme (debounced 2 sn) + şablonlar (boş/makale/mektup/Beamer) +
 outline paneli (\section ağacı, tıklayınca satıra git) + ~35 LaTeX snippet (Monaco);
-plan/yükseltme sayfası `/yukselt` + ödeme önizleme `/yukselt/odeme` (mock — banner: "henüz aktif değil").
+plan/yükseltme sayfası `/yukselt` + ödeme önizleme `/yukselt/odeme` (mock — banner: "henüz aktif değil");
+log konsolunu `.txt` olarak indirme; tek font ailesi (var(--font-sans) UI, var(--font-mono) kod/log).
 
 **Kalan / sıradaki:**
 1. **VM oturumu** (kullanıcı kendisi yapacak, tek seferde):

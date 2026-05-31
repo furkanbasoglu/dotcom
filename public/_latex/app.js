@@ -88,6 +88,7 @@ const els = {
   btnSignOut: document.getElementById('btn-sign-out'),
   btnUpgrade: document.getElementById('btn-upgrade'),
   btnClearLogs: document.getElementById('btn-clear-logs'),
+  btnDownloadLogs: document.getElementById('btn-download-logs'),
   authLoading: document.getElementById('auth-loading'),
   authSignedOut: document.getElementById('auth-signed-out'),
   authSignedIn: document.getElementById('auth-signed-in'),
@@ -136,6 +137,24 @@ function log(msg, level = 'info') {
 }
 
 els.btnClearLogs.addEventListener('click', () => { els.logsBody.textContent = ''; });
+
+// Log konsolunu .txt olarak indir
+if (els.btnDownloadLogs) {
+  els.btnDownloadLogs.addEventListener('click', () => {
+    const text = (els.logsBody.textContent || '').trim();
+    if (!text) { log('Log boş, indirilecek bir şey yok.', 'warn'); return; }
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const blob = new Blob([text + '\n'], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `latex-derleyici-log-${stamp}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+}
 
 // ──────────────────────────────────────────────────────────────────
 // Proje / dosya ağacı
@@ -569,8 +588,8 @@ async function initEditor() {
       editor = monaco.editor.create(els.editorHost, {
         language: 'latex',
         theme: 'vs-dark',
-        fontSize: 16,
-        fontFamily: '"JetBrains Mono", "Courier New", monospace',
+        fontSize: 14,
+        fontFamily: 'ui-monospace, "JetBrains Mono", "SF Mono", Consolas, monospace',
         minimap: { enabled: false },
         scrollBeyondLastLine: false,
         wordWrap: 'on',
