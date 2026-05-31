@@ -50,23 +50,25 @@ button {
 }
 
 .title {
-  font-weight: 600;
+  font-weight: 700;
   color: #fff;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
 }
 
 .user-email {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
+  color: #aaa;
 }
 .tier-badge {
   background: #2a2a2a;
   color: #aaa;
-  padding: 0.2rem 0.6rem;
+  padding: 0.22rem 0.6rem;
   border-radius: 3px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 .tier-badge[data-tier="pro"]   { background: #2a3a4a; color: #a0c0e0; }
@@ -100,13 +102,13 @@ button {
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.45rem;
   background: #1f1f1f;
   border: 1px solid #333;
   color: #e0e0e0;
-  padding: 0.75rem 1.3rem;
+  padding: 0.55rem 1.05rem;
   border-radius: 4px;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 500;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
   text-decoration: none;
@@ -151,17 +153,17 @@ button {
   background: #1f1f1f;
   border: 1px solid #333;
   color: #ccc;
-  padding: 0.65rem 1rem;
+  padding: 0.5rem 0.85rem;
   border-radius: 4px;
-  font-size: 1.05rem;
+  font-size: 0.92rem;
   font-family: "JetBrains Mono", monospace;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='%23999' d='M3 4l3 4 3-4z'/></svg>");
   background-repeat: no-repeat;
-  background-position: right 0.6rem center;
-  padding-right: 2.1rem;
+  background-position: right 0.55rem center;
+  padding-right: 1.85rem;
 }
 .engine-select:hover:not(:disabled) { border-color: #555; color: #fff; }
 .engine-select:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -206,21 +208,21 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.65rem 1.1rem;
+  padding: 0.55rem 1rem;
   background: #181818;
   border-bottom: 1px solid #2a2a2a;
   flex-shrink: 0;
 }
 
 .panel-title {
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   color: #ccc;
-  font-weight: 500;
+  font-weight: 600;
   font-family: "JetBrains Mono", monospace;
 }
 
 .panel-meta {
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   color: #777;
   font-family: "JetBrains Mono", monospace;
 }
@@ -294,9 +296,9 @@ button {
 .pdf-toolbar {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
   font-family: "JetBrains Mono", monospace;
-  font-size: 1.08rem;
+  font-size: 0.9rem;
   margin-left: auto;
   margin-right: 0.6rem;
 }
@@ -307,41 +309,41 @@ button {
   padding: 0;
   border-radius: 3px;
   cursor: pointer;
-  min-width: 2.5rem;
-  height: 2.4rem;
+  min-width: 2.1rem;
+  height: 2rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-family: inherit;
-  font-size: 1.15rem;
+  font-size: 1rem;
   line-height: 1;
 }
 .pdf-btn:hover:not(:disabled) { background: #2a2a2a; color: #fff; }
 .pdf-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .pdf-zoom-badge {
-  min-width: 4rem;
+  min-width: 3.4rem;
   text-align: center;
   color: #aaa;
 }
 .pdf-sep {
   width: 1px;
-  height: 1.5rem;
+  height: 1.3rem;
   background: #2a2a2a;
-  margin: 0 0.4rem;
+  margin: 0 0.35rem;
 }
 .pdf-page-input {
-  width: 4rem;
+  width: 3.4rem;
   background: #1a1a1a;
   border: 1px solid #2a2a2a;
   color: #ccc;
-  padding: 0.3rem 0.45rem;
+  padding: 0.25rem 0.4rem;
   text-align: center;
   font-family: inherit;
   font-size: inherit;
   border-radius: 3px;
   appearance: textfield;
   -moz-appearance: textfield;
-  height: 2.4rem;
+  height: 2rem;
   box-sizing: border-box;
 }
 .pdf-page-input::-webkit-inner-spin-button,
@@ -350,15 +352,15 @@ button {
 .pdf-page-total { color: #777; }
 
 .pdf-search {
-  width: 12rem;
+  width: 10rem;
   background: #1a1a1a;
   border: 1px solid #2a2a2a;
   color: #ccc;
-  padding: 0.3rem 0.7rem;
+  padding: 0.25rem 0.6rem;
   font-family: inherit;
   font-size: inherit;
   border-radius: 3px;
-  height: 2.4rem;
+  height: 2rem;
   box-sizing: border-box;
 }
 .pdf-search:disabled { opacity: 0.4; }
@@ -386,14 +388,14 @@ button {
 
 .logs-body {
   margin: 0;
-  padding: 0.9rem 1.2rem;
+  padding: 0.85rem 1.15rem;
   font-family: "JetBrains Mono", "Courier New", monospace;
-  font-size: 1.02rem;
+  font-size: 0.92rem;
   color: #aaa;
   white-space: pre-wrap;
   overflow: auto;
   flex: 1;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .logs-body .log-error { color: #f0a0a0; }
@@ -439,7 +441,7 @@ button {
 }
 .icon-btn:hover { background: #1f1f1f; color: #fff; border-color: #444; }
 
-.file-tree { list-style: none; margin: 0; padding: 0.4rem; overflow: auto; flex: 1.6 1 0; min-height: 80px; font-size: 1.05rem; }
+.file-tree { list-style: none; margin: 0; padding: 0.4rem; overflow: auto; flex: 1.6 1 0; min-height: 80px; font-size: 0.95rem; }
 
 .outline-section {
   display: flex;
@@ -449,25 +451,26 @@ button {
   border-top: 1px solid #1c1c1c;
 }
 .panel-subheader {
-  padding: 0.6rem 1rem;
-  font-size: 0.95rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.85rem;
   color: #888;
   font-family: "JetBrains Mono", monospace;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   background: #111;
   flex-shrink: 0;
+  font-weight: 600;
 }
 .outline-list {
   list-style: none;
   margin: 0;
-  padding: 0.35rem 0;
+  padding: 0.3rem 0;
   overflow: auto;
   flex: 1;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
 }
 .outline-list li {
-  padding: 0.4rem 0.9rem;
+  padding: 0.35rem 0.9rem;
   cursor: pointer;
   color: #bbb;
   white-space: nowrap;
@@ -477,8 +480,8 @@ button {
 .outline-list li:hover { background: #1c1c1c; color: #fff; }
 .outline-list li.outline-empty { color: #555; cursor: default; }
 .outline-list li.outline-empty:hover { background: transparent; color: #555; }
-.outline-list li.outline-l1 { padding-left: 1.9rem; color: #aaa; }
-.outline-list li.outline-l2 { padding-left: 2.8rem; color: #999; font-size: 0.98rem; }
+.outline-list li.outline-l1 { padding-left: 1.8rem; color: #aaa; }
+.outline-list li.outline-l2 { padding-left: 2.6rem; color: #999; font-size: 0.88rem; }
 
 .modal-select-label {
   display: block;
@@ -558,33 +561,49 @@ body.resizing .editor-host, body.resizing .pdf-host { pointer-events: none; }
   .panel-files { width: auto; height: 130px; }
   .gutter-v { display: none; }
 }
-/* ===== Projelerim (dashboard)  (styles.css'in SONUNA EKLE) ===== */
+/* ===== Projelerim (dashboard) ===== */
 .dashboard {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 2rem clamp(1rem, 5vw, 4rem);
+  padding: 2.5rem clamp(1.5rem, 5vw, 4rem) 3rem;
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: 1.5rem;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
-.dash-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.dash-title { font-size: 1.5rem; margin: 0; }
-.dash-status { color: #888; font-size: 0.9rem; margin: 0; min-height: 1em; }
-.dash-signed-out { color: #aaa; padding: 1rem; border: 1px dashed #333; border-radius: 8px; }
+.dash-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #1f1f1f;
+}
+.dash-title { font-size: 2.2rem; margin: 0; font-weight: 700; letter-spacing: -0.02em; color: #fff; }
+.dash-status { color: #888; font-size: 0.95rem; margin: 0; min-height: 1em; }
+.dash-signed-out { color: #aaa; padding: 1.2rem; border: 1px dashed #333; border-radius: 8px; font-size: 0.95rem; }
 .dash-list {
   list-style: none; padding: 0; margin: 0;
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.8rem;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.2rem;
 }
 .dash-card {
   display: flex; align-items: stretch;
   border: 1px solid #2a2a2a; border-radius: 10px; background: #161616;
-  overflow: hidden; transition: border-color 0.12s, background 0.12s;
+  overflow: hidden; transition: border-color 0.12s, background 0.12s, transform 0.12s;
 }
-.dash-card:hover { border-color: #3a5570; background: #1a1f25; }
-.dash-card-main { flex: 1 1 auto; padding: 0.9rem 1rem; cursor: pointer; min-width: 0; }
-.dash-card-name { font-weight: 600; margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dash-card-meta { font-size: 0.75rem; color: #888; }
-.dash-card-del { background: transparent; border: none; color: #777; cursor: pointer; padding: 0 0.85rem; font-size: 1rem; }
+.dash-card:hover { border-color: #3a5570; background: #1a1f25; transform: translateY(-1px); }
+.dash-card-main { flex: 1 1 auto; padding: 1.1rem 1.2rem; cursor: pointer; min-width: 0; }
+.dash-card-name {
+  font-weight: 600; font-size: 1.1rem;
+  margin-bottom: 0.4rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: #fff;
+}
+.dash-card-meta { font-size: 0.85rem; color: #888; }
+.dash-card-del {
+  background: transparent; border: none; color: #777; cursor: pointer;
+  padding: 0 1rem; font-size: 1.15rem;
+}
 .dash-card-del:hover { color: #e06666; background: #2a1a1a; }
 /* ===== Ozel modal (prompt/confirm yerine)  (styles.css'in SONUNA EKLE) ===== */
 .modal-overlay {
